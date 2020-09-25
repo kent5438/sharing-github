@@ -1,0 +1,77 @@
+---
+title: "Assembly result"
+output:
+  html_document:
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align="center")
+library(DT)
+library(dplyr)
+```
+
+***
+
+### How does our assembly work?
+
+> __File path: files/1_Assembly/__
+
+#### {Assembly}
+We are using "shovill" package for the assembly pipeline combined with three tools/steps [1]: 
+
+1. FLASH: Fast pre-overlap paired-end short reads
+
+2. SPAdes: St. Petersburg genome assembler – is an assembly toolkit containing various assembly pipelines. The SPAdes genome assembler has become the de facto standard de novo genome assembler for Illumina whole genome sequencing data of bacteria and other small microbes.
+(http://cab.spbu.ru/software/spades/)
+
+3. Pilon: Correct minor assembly errors by mapping reads back to contigs
+
+#### {Scaffolding}
+
+As the contigs are assembled, scaffolding is an important following work to connect contigs and gaps. Gap length can be guessed by incorporating information from paired ends or mate pairs. 
+
+#### {Gap filling}
+
+GapFiller is a stand-alone program for closing gaps within pre-assembled scaffolds. It is unique in offering the possibility to manually control the gap closure process. By using the distance information of paired-read data, GapFiller seeks to close the gap from each edge in an iterative manner.
+
+#### {Assembly evaluation}
+
+Finally, we are using “QUAST” for evaluating the assembled genome quality [2].
+
+***
+
+### Assembly Result & Summary
+
+[SPAdes assembled contigs (.fasta)](files/1_Assembly/contigs.fasta)
+
+[Scaffold (.fasta)](files/1_Assembly/scaffolds.fasta) <-- used for following ananlysis
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+fixed_polished_report <- read.table("files/1_Assembly/AssemblyStats/report.tsv", header=T, check.names=F, sep="\t")
+
+datatable(fixed_polished_report, options = list(
+  dom = 't',
+  columnDefs = list(list(className = 'dt-center', targets = c(2,3)))
+)) %>%
+#  formatCurrency('<prefix>.contigs', currency = "", interval = c(2,3), mark = ",", digits=0)
+   formatCurrency(c('contigs','scaffolds'), currency = "", interval = 3, mark = ",", digits=0)
+```
+
+***
+
+### Reference
+```
+1. "Shovill" - Assembler package 
+(https://github.com/tseemann/shovill)
+- FLASH: paired-end reads merge
+- SPAdes: assembler
+- Pilon: contig polishing
+
+2. "QUAST" - Assembly evalutation
+(http://quast.sourceforge.net/quast.html)
+```

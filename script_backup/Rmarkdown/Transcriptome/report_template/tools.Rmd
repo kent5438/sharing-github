@@ -1,0 +1,56 @@
+---
+title: "Useful Tools"
+output:
+  html_document:
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align="center")
+```
+
+***
+
+### 
+
+<a href="https://notepad-plus-plus.org/zh/" target="_blank">Notepad++</a>: 適合觀看所有文字or序列檔
+
+__[Why?] 生資分析產生出來的data大部分是在linux環境，Windows內建的記事本無法有效呈現__
+
+<br>
+
+<a href="https://delim.co/" target="_blank">Comma separator</a>: 分隔符號轉換行
+
+__如：comma -> tab | space -> tab__
+
+<br>
+
+<a href="http://bioinfogp.cnb.csic.es/tools/venny/" target="_blank">Venny diagram</a>: 多個樣品取交集基因
+
+<br>
+
+<a href="http://revigo.irb.hr/" target="_blank">REVIGO</a>: 視覺化GO data
+
+__Very useful for GO enrichment data__
+
+<br>
+
+<a href="http://www.uniprot.org/" target="_blank">Uniprot database</a>: 世界三大基因/蛋白質資料庫
+
+__Search for the Uniprot Gene ID__
+
+<br>
+
+<a href="http://www.uniprot.org/mapping/" target="_blank">ID mapping</a>: 基因名稱轉換（實用！）
+
+__Help for conversion between "Uniprot Gene ID" and "NCBI Gene ID"__
+
+<br>
+
+<a href="http://www.genome.jp/kegg/tool/map_pathway1.html" target="_blank">KEGG pathway mapping</a>: 透過KEGG網站搜索enzyme或基因的代謝路徑
+
+***
+

@@ -1,0 +1,90 @@
+---
+title: "Assembly result"
+output:
+  html_document:
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align="center")
+library(DT)
+library(dplyr)
+```
+
+***
+
+> __File path: 1_Assembly/__
+
+__Pacbio sequencing with official assembly tool – “HGAP” is powerful for bacterial genome assembly [1]. However, current long-read assembly software still typically assumes that the contigs they produce are linear. In contrast, the genome of almost every species contains at least one circular DNA structure, such as bacterial chromosomes and plasmids. Thus, a useful circularization of genome assembly tool – “Circlator v1.4.0” is our default pipeline to correct and linearize the genome [2]. Finally, we are using “QUAST v4.5” for evaluating the assembled genome quality [3].__
+
+<br>
+
+### HGAP Raw Assembly Summary (HGAP)
+
+[HGAP raw assembled contigs (.fasta)](files/1_Assembly/<prefix>_polished_assembly.fasta)
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+polished_report <- read.csv("files/1_Assembly/AssemblyStats/polished_report.csv", header=T, row.names=1, check.names=F)
+
+datatable(polished_report, options = list(
+ columnDefs = list(list(className = 'dt-center', targets = 1)), 
+ dom = 't'
+)) %>%
+  formatCurrency('value', currency = "", interval = 3, mark = ",", digits=0)
+```
+
+<br>
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+polished_cov_report <- read.csv("files/1_Assembly/AssemblyStats/polished_coverage_vs_quality.csv", header=T, check.names=F)
+datatable(polished_cov_report, options = list(
+  dom = 't',
+  columnDefs = list(list(className = 'dt-center', targets = c(1:3)))
+)) %>%
+  formatRound(c('mean_coverage', 'mean_qv'), 2)
+```
+
+<br>
+
+### HGAP Raw Assembled Contigs Coverage v.s. Quality
+
+```{r, out.width = "600px", echo=FALSE, message=FALSE, warning=FALSE}
+knitr::include_graphics("files/1_Assembly/AssemblyStats/polished_coverage_vs_quality.png")
+```
+
+<br>
+
+***
+
+<br>
+
+### Fixed and Circularised Polished Assembly Summary (Circlator)
+
+[Fixed and circularised contigs (.fasta)](files/1_Assembly/<prefix>_polished_fixed.circularise.fasta)
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+fixed_polished_report <- read.table("files/1_Assembly/AssemblyStats/report.tsv", header=T, check.names=F, sep="\t")
+
+datatable(fixed_polished_report, options = list(
+  dom = 't',
+  columnDefs = list(list(className = 'dt-center', targets = 2))
+)) %>%
+  formatCurrency('<prefix>_polished_fixed.circularise', currency = "", interval = 3, mark = ",", digits=0)
+```
+
+***
+
+### Reference
+```
+1. "SMRT analysis HGAP v3/v4" - Assembler
+Alexander, D.H., Chin, C., Clum, A., Copeland, A., Drake, J., Eichler, E.E., Heiner, C., Huddleston, J., Klammer, A.A., Korlach, J., Marks, P., & Turner, S.W. (2013). Nonhybrid, finished microbial genome assemblies from long-read SMRT sequencing data. Nature methods, 10 6, 563-9.
+
+2. "Circlator v1.4.0" - Assembly fixed & improvement
+Hunt M, Silva ND, Otto TD, Parkhill J, Keane JA, Harris SR. Circlator: automated circularization of genome assemblies using long sequencing reads. Genome Biology. 2015;16:294. doi:10.1186/s13059-015-0849-0.
+
+3. "QUAST v4.5" - Assembly evalutation
+Gurevich A., Saveliev V., Vyahhi N., Tesler G. QUAST: quality assessment tool for genome assemblies. Bioinformatics, 2013.
+```

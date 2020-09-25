@@ -1,0 +1,6 @@
+GSNO	GSNO_1	reads/GSNO-1_R1.fastq	reads/GSNO-1_R2.fastq
+GSNO	GSNO_2	reads/GSNO-2_R1.fastq	reads/GSNO-2_R2.fastq
+GSNO	GSNO_3	reads/GSNO-3_R1.fastq	reads/GSNO-3_R2.fastq
+wt	wt_1	reads/wt-1_R1.fastq	reads/wt-1_R2.fastq
+wt	wt_2	reads/wt-2_R1.fastq	reads/wt-2_R2.fastq
+wt	wt_3	reads/wt-3_R1.fastq	reads/wt-3_R2.fastq

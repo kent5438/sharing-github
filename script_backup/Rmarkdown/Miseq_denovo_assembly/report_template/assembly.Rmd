@@ -1,0 +1,62 @@
+---
+title: "Assembly result"
+output:
+  html_document:
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align="center")
+library(DT)
+library(dplyr)
+```
+
+***
+
+> __File path: files/1_Assembly/__
+
+We are using "SPAdes" for the assembly work which is an assembly toolkit containing various assembly pipelines. [1].  
+
+SPAdes comes in several separate modules:
+
+- BayesHammer – read error correction tool for Illumina reads, which works well on both single-cell and standard data sets.
+
+- IonHammer – read error correction tool for IonTorrent data, which also works on both types of data.
+
+- SPAdes – iterative short-read genome assembly module; values of K are selected automatically based on the read length and data set type.
+
+- MismatchCorrector – a tool which improves mismatch and short indel rates in resulting contigs and scaffolds; this module uses the BWA tool.
+
+Finally, we are using “QUAST” for evaluating the assembled genome quality [2].
+
+<br>
+
+***
+
+### Assembly Summary
+
+[SPAdes assembled contigs (.fasta)](files/1_Assembly/contigs.fasta)
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+fixed_polished_report <- read.table("files/1_Assembly/AssemblyStats/report.tsv", header=T, check.names=F, sep="\t")
+
+datatable(fixed_polished_report, options = list(
+  dom = 't',
+  columnDefs = list(list(className = 'dt-center', targets = 2))
+)) %>%
+  formatCurrency('contigs', currency = "", interval = 3, mark = ",", digits=0)
+```
+
+***
+
+### Reference
+```
+1. "SPAdes v3.10.1" - Assembler
+S. Nurk, A. Bankevich, D. Antipov, A. A. Gurevich, A. Korobeynikov, A. Lapidus, A. D. Prjibelsky, A. Pyshkin, A. Sirotkin, Y. Sirotkin, R. Stepanauskas, J. S. McLean, R. Lasken, S. R. Clingenpeel, T. Woyke, G. Tesler, M. A. Alekseyev, and P. A. Pevzner. Assembling Single-Cell Genomes and Mini-Metagenomes From Chimeric MDA Products. Journal of Computational Biology 20(10) (2013), 714-737. doi:10.1089/cmb.2013.0084
+
+2. "QUAST v4.5" - Assembly evalutation
+Gurevich A., Saveliev V., Vyahhi N., Tesler G. QUAST: quality assessment tool for genome assemblies. Bioinformatics, 2013.
+```

@@ -1,0 +1,4 @@
+GSNO_1	wt_1
+GSNO_2	wt_2
+GSNO_3	wt_3
+GSNO_1,GSNO_2,GSNO_3	wt_1,wt_2,wt_3

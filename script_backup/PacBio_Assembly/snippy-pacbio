@@ -1,0 +1,789 @@
+#!/usr/bin/env perl
+use 5.18.0; # for Time::Seconds
+use strict;
+use warnings;
+use FindBin;
+use lib "$FindBin::RealBin/../perl5";
+###LINE_FOR_BREW_CONDA###
+use Snippy::Version;
+use List::Util qw(min max sum);
+use Time::Piece;
+use Time::Seconds;
+use File::Path qw(make_path remove_tree);
+use File::Spec;
+use File::Basename;
+use File::Copy;
+use Bio::SeqIO;
+use Bio::Tools::GFF;
+use Cwd qw(abs_path getcwd);
+
+# . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 
+# global variables
+
+my $VERSION = Snippy::Version->version;
+my $EXE = $FindBin::RealScript;
+my $BINDIR = $FindBin::RealBin;
+my $APPDIR = dirname($FindBin::RealBin);
+my $SYNOPSIS = "fast bacterial variant calling from NGS reads";
+my $AUTHOR = 'Torsten Seemann';
+my $URL = 'https://github.com/tseemann/snippy';
+my $OPSYS = $^O;
+my $t0 = localtime;
+my $MIN_FREEBAYES_CHUNK_SIZE = 1000;
+my $FAKE_READ_LEN = 250;
+my $KEEP_VCF_TAGS = join(',', (map { "^INFO/$_" } qw"TYPE DP RO AO AB"),
+                              (map { "^FORMAT/$_" } qw"GT DP RO AO QR QA GL") );
+my $HET_SYM = 'n';
+my $ZEROCOV_SYM = '-';
+my $LOWCOV_SYM = 'N';
+
+# for the logfile later on
+my $ORIGDIR = getcwd;
+my @CMDLINE = ($0, @ARGV);  
+
+# . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 
+# command line options
+
+my(@Options, $quiet, $check, $force, $outdir, $prefix,
+             $reference, $cpus, $tmpdir, $ram,
+             $bam, $pe1, $pe2, $se, $peil, $ctgs, $unmapped, $subsample,
+             $report, $mapqual, $basequal, $maxsoft, $minqual,
+             $mincov, $minfrac, $rgid, $bwaopt, $fbopt, $targets,
+             $cleanup);
+setOptions();
+
+# . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 
+# greet the user
+
+msg("This is $EXE $VERSION");
+msg("Written by $AUTHOR");
+msg("Obtained from $URL");
+msg("Detected operating system: $OPSYS");
+
+# . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 
+# give access to bundled tools (at end of PATH)
+
+msg("Enabling bundled $OPSYS tools.");
+$ENV{PATH} = "$BINDIR:"
+             .$ENV{PATH}
+             .":$APPDIR/binaries/$OPSYS"
+             .":$APPDIR/binaries/noarch";
+
+# . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 
+# check for needed exes
+
+for my $exe (qw(bwa bcftools samtools java snpEff samclip seqtk
+                parallel freebayes freebayes-parallel fasta_generate_regions.py 
+                vcfstreamsort vcfuniq vcffirstheader gzip vt
+                snippy-vcf_to_tab snippy-vcf_report)) {
+  my($which) = qx(which $exe 2> /dev/null);
+  $which or err("Can not find required '$exe' in PATH");
+  chomp $which;
+  msg("Found $exe - $which");
+}
+
+# . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 
+# check for specific versions
+
+sub parse_version {
+  my($cmd, $min, $re) = @_;
+  open my $VER, '-|', $cmd.' 2>&1' or err("Could not open pipe to '$cmd'");
+  my $blob = join '', <$VER>;
+  err("Could not read output of '$cmd'") unless $blob;
+  #msg("parse=[$blob]");
+  $blob =~ $re;
+  my $ver = defined $1 ? $1 : 0;
+  err("Need $cmd >= $min but you have $ver - please upgrade it.") if $ver < $min;
+  msg("Checking version: $cmd is >= $min - ok, have $ver");
+  return $ver;
+}
+parse_version( 'samtools --version',  1.7, qr/samtools\s(\d+\.\d+)/ms );
+parse_version( 'bcftools --version',  1.7, qr/bcftools\s(\d+\.\d+)/ms );
+parse_version( 'freebayes --version', 1.1, qr/\sv(\d+\.\d+)/ms        );
+parse_version( 'java -version',  1.8, qr/version\D+(\d+\.\d+)/ms );
+parse_version( 'snpEff -version',     4.3, qr/(\d+\.\d+)/ms           );
+parse_version( 'bwa',  7.12, qr/Version:\s+0.(\d+\.\d+)/ms );
+
+# quit now if --check was provided
+if ($check) {
+  msg("Dependences look good!");
+  exit(0);
+}
+
+# . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 
+# type check parameters
+
+$prefix =~ m{/} and err("File --prefix can not have slash '/' in it.");
+
+$reference or err("Please supply a reference FASTA/GBK/EMBL file with --reference");
+-r $reference or err("Invalid --reference filename");
+$reference = abs_path($reference);
+msg("Using reference: $reference");
+my $ref_fmt = guess_format($reference) or err("Could not guess format '$reference'");
+msg("Treating reference as '$ref_fmt' format.");
+
+$targets && !-r $targets and err("Could not read BED file --targets '$targets'");
+
+$cpus > 0 or err("Invalid --cpus $cpus");
+msg("Will use $cpus CPU cores.");
+
+($pe1 or $pe2 or $se or $peil or $ctgs or $bam) 
+  or err("No read files specified. Use --R1/--R2 or --se or --peil or --ctgs or --bam");
+
+($pe1 && $pe2) xor $se xor $peil xor $ctgs xor $bam
+  or err("Can not mix read file types. Either (1) --R1 (2) --se (3) --peil (4) --ctgs (5) --bam");
+
+($subsample > 0 && $subsample <= 1) or err("Option --subsample $subsample must be between 0 and 1");
+
+$maxsoft >= 0 or err("--maxsoft must be a positive integer");
+
+my @reads;
+if ($bam) {
+  $bam = abs_path($bam);
+  -r $bam or err("Can not read BAM '$bam'");
+  msg("Using BAM file '$bam' instead of aligning reads.");
+}
+else {
+  for my $readfn ($pe1, $pe2, $se, $peil, $ctgs) {
+    next unless $readfn;
+    -r $readfn or err("Can not read sequence file: $readfn");
+    push @reads, abs_path($readfn);
+  }
+  msg("Using read file: $_") for @reads;
+}
+
+$tmpdir or err("Please provide a valid --tmpdir");
+-d $tmpdir or err("--tmpdir '$tmpdir' is not a directory");
+$tmpdir = abs_path($tmpdir);
+
+# . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 
+# prepare output folder
+
+$outdir or err("Please specify where to write results to using --outdir folder");
+if (-d $outdir) {
+  if ($force) {
+    #msg("Deleting all files in existing folder: $outdir");
+    #remove_tree($outdir, { keep_root=>1 } )
+    msg("Used --force, will overwrite existing $outdir");
+  }
+  else {
+    err("Output folder $outdir already exists. Remove or use --force.");
+  }
+}
+else {
+  msg("Creating folder: $outdir");
+  make_path($outdir);
+}
+
+msg("Changing working directory: $outdir");
+chdir($outdir);
+
+# . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+# put atypical pipeline steps into these lists
+
+my @pre_cmd;
+my @post_cmd;
+
+# . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 
+# load the reference, now support all formats Bioperl can load
+
+my $refdir = "reference";
+msg("Creating reference folder: $refdir");
+make_path($refdir);
+
+msg("Extracting FASTA and GFF from reference.");
+my $in = Bio::SeqIO->new(-file=>$reference, -format=>$ref_fmt) or err("Could not open --reference: $reference");
+my $out = Bio::SeqIO->new(-file=>">$refdir/ref.fa", -format=>'fasta');
+my $gff = Bio::Tools::GFF->new(-file=>">$refdir/ref.gff", -gff_version=>3);
+my $nseq = 0;
+my $nfeat = 0;
+my %refseq;
+my %tagcnt;
+while (my $seq = $in->next_seq) {
+  exists $refseq{$seq->id} and err("Duplicate sequence ".$seq->id." in $reference");
+  # check for IUPAC codes and replace with 'n'
+  my $dna = uc($seq->seq);
+  $dna =~ s/[^AGTCN]/n/g; # https://github.com/tseemann/snippy/issues/235
+  $refseq{ $seq->id } = $dna; # keep for masking later
+  $seq->seq($dna); # replace in object for writing to ref.fa
+  $out->write_seq($seq);
+  $nseq++;
+  for my $f ($seq->get_SeqFeatures) {
+    my $ftype = $f->primary_tag;
+    next if $ftype =~ m/^(source|gene|misc_feature)$/;
+    $tagcnt{ $ftype }++; # use this for features without a locus_tag
+
+    # How many bases to skip before translating
+    # https://github.com/The-Sequence-Ontology/Specifications/blob/master/gff3.md
+    # We use frame() because phase() seems to be ignored by bioperl
+    $f->frame( $ftype eq 'CDS' ? '0' : '.' );
+
+    if ($f->has_tag('locus_tag')) {
+      my($id) = $f->get_tag_values('locus_tag');
+      $f->add_tag_value('ID', $id);
+    }
+    else {
+      $f->add_tag_value( 'ID', $ftype.'_'.$tagcnt{$ftype} );
+    }
+    if ($f->has_tag('gene')) {
+      my($gene) = $f->get_tag_values('gene');
+      $f->add_tag_value('Name', $gene);
+    }
+    $f->source_tag($EXE);
+    $gff->write_feature($f);
+    $nfeat++;
+  }
+}
+msg("Wrote $nseq sequences to ref.fa");
+msg("Wrote $nfeat features to ref.gff");
+
+
+# . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 
+# if using contigs as fake High Quality FQ reads, tweak some settings
+
+if ($ctgs) {
+  # ideally we would use paftools.js or nucmer here instead
+  msg("Shredding $reads[0] into pseudo-reads");
+  my $FAKE_READ_COV = 2 * $mincov; # https://github.com/tseemann/snippy/issues/253
+  # we halve the coverage as we will take 2 reads for each stride (fwd + rev)
+  my $stride = $FAKE_READ_LEN / (0.5 * $FAKE_READ_COV);
+  my $counter=0;
+  my $out_fn = "fake_reads.fq";
+  open my $out, '>', $out_fn;
+  my $in = Bio::SeqIO->new(-file=>$reads[0], -format=>'fasta');
+  while (my $seq = $in->next_seq) {
+    my @dna = ( uc($seq->seq), uc($seq->revcom->seq) );
+    my $L = $seq->length;
+    my $len = min($L, $FAKE_READ_LEN); # limit read to contig size (small contigs)
+    for ( my $i = -$len; $i < $L + $len; $i += $stride ) {
+      # ensure good coverage at contig ends by striding before and after
+      my $start = max( $i, 0 );
+      $start = min( $start, $L - $len );
+      for my $r (0, 1) {
+        $counter++;
+#        print $out "\@read$counter ($i => $start) len=$len\n", 
+        print $out "\@read$counter\n", 
+                   substr( $dna[$r], int($start), $len ), "\n",
+                   "+\n", 
+                   ('H')x$len, "\n";
+      }
+    }
+  }
+  close $out;
+  msg("Wrote $counter fake ${FAKE_READ_LEN}bp reads (${FAKE_READ_COV}x, stride ${stride}bp) to $out_fn");
+  @reads = ($out_fn);
+  push @post_cmd, "rm -f \Q$out_fn\E";
+}
+elsif ($subsample < 1) {
+  msg("Sub-sampling reads at rate $subsample");
+  my @ssreads;
+  for my $r (@reads) {
+    my $ssr = 'subsampled.'.basename($r, ".gz");
+    push @pre_cmd, "seqtk sample \Q$r\E $subsample > \Q$ssr\E";
+    push @post_cmd, "rm -f \Q$ssr\E";
+    push @ssreads, $ssr;
+  }
+  @reads = @ssreads;
+}
+
+
+# . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 
+# create config for snpEff
+
+if ($nfeat > 0) {
+  my $cfg_fn = "$refdir/snpeff.config";
+  msg("Creating $cfg_fn");
+  copy("$BINDIR/../etc/snpeff.config", $cfg_fn);
+  open my $cfg, '>>', $cfg_fn;
+  print $cfg "ref.genome : Snippy Reference\n";
+  my @id = keys %refseq;
+  print $cfg "\tref.chromosome : ", join(", ", @id), "\n";
+  for my $id (@id) {
+    print $cfg "\tref.$id.codonTable : Bacterial_and_Plant_Plastid\n";
+  }
+  close $cfg;
+}
+
+# . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 
+# divide the reference into chunks to parallel freebayes processing
+
+my $refsize = -s "$refdir/ref.fa";  # rough size in bases
+my $num_chunks = 1 + 2*($cpus-1); # oversample a bit for run-time variation but 1 for --cpus 1
+my $chunk_size = max( $MIN_FREEBAYES_CHUNK_SIZE, int( $refsize / $num_chunks ) ); # bases per chunk
+msg("Freebayes will process $num_chunks chunks of $chunk_size bp, $cpus chunks at a time.");
+
+# . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 
+# prepare the command options
+
+unless ($rgid) {
+  $outdir =~ s{/*$}{}; # remove trailing slashes (D.Ingle)
+  my @dirs = File::Spec->splitdir($outdir);
+  $rgid = $dirs[-1];
+  #msg("RGID: dirs=[@dirs] rgid=$rgid");
+}
+msg("Using BAM RG (Read Group) ID: $rgid");
+
+$bwaopt .= qq{ -Y -M -R '\@RG\\tID:$rgid\\tSM:$rgid'};
+$bwaopt .= ' -p' if $peil;
+
+# the goal of this is to find as many non-reference sites as possible
+# including both real SNPs - good quality 1/1 genotypes
+# as well as dodgy areas with mixtures such as het 0/1,1/2 etc.
+# so we are permissive here, and filter later
+# - we can filter on $mincov because later samtools depth will
+#   replace any sites 0 < mincov < DP with 'N', and 0 with '-'.
+
+$fbopt = "-p 2 -P 0 -C $mincov --min-repeat-entropy 1.5 --strict-vcf".
+         " -q $basequal -m $mapqual --min-coverage $mincov -F 0.05".
+         " $fbopt";  # append --fbopt from command line to override previous
+$fbopt .= sprintf " --targets '%s'", abs_path($targets) if $targets;
+
+# rules to extract good SNPs from the above freebayes
+# can't use AF here as freebayes only uses 0, 0.5, 1
+#my $bcf_filter = qq{FMT/GT="1/1" && FMT/DP>=$mincov && AB<$minfrac};
+my $bcf_filter = qq{FMT/GT="1/1" && QUAL>=$minqual && FMT/DP>=$mincov && (FMT/AO)/(FMT/DP)>=$minfrac};
+
+my $sort_temp = "-T $tmpdir";
+# -@ = _additional_ CPUs: https://github.com/tseemann/snippy/issues/276
+my $sort_cpus = max(1, min($cpus, 16)-1);
+my $sort_ram = "-m ".sprintf("%dM", 1000*$ram/$sort_cpus/2);
+$sort_cpus = "--threads $sort_cpus";
+my $sortopt = "-l 0 $sort_temp $sort_cpus $sort_ram";
+
+# . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 
+# prepare the commands
+
+sub consensus_commands {
+  my($ref, $vcf, $fasta, $nuke) = @_;
+  return (
+    "bcftools convert -Oz -o $vcf.gz $vcf",
+    "bcftools index -f $vcf.gz",
+    "bcftools consensus -f $ref -o $fasta $vcf.gz",
+    $nuke ? "rm -f $vcf.gz $vcf.gz.csi $vcf.gz.tbi" : (),
+  );
+}
+
+my @cmd = (
+  @pre_cmd,
+  # reference prep
+  "samtools faidx $refdir/ref.fa",
+  ( $bam ? () : "bwa index $refdir/ref.fa" ),
+  "mkdir -p $refdir/genomes && cp -f $refdir/ref.fa $refdir/genomes/ref.fa",
+  "ln -sf $refdir/ref.fa .",
+  "ln -sf $refdir/ref.fa.fai .",
+  # snpeff index
+  "mkdir -p $refdir/ref && gzip -c $refdir/ref.gff > $refdir/ref/genes.gff.gz",
+  ( $nfeat > 0 ? "snpEff build -c $refdir/snpeff.config -dataDir . -gff3 ref" 
+               : () ),
+  # make BAM
+  ($bam ? "samtools view -h -O SAM \Q$bam\E" : "bwa mem $bwaopt -t $cpus $refdir/ref.fa @reads")
+    ." | samclip --max $maxsoft --ref $refdir/ref.fa.fai"
+    ." | samtools sort -n $sortopt"
+    ." | samtools fixmate -m - -"
+    ." | samtools sort $sortopt"
+    ." | samtools markdup $sort_temp -r -s - -"
+    ." > $prefix.bam",
+  "samtools index $prefix.bam",
+  # call variants
+  "fasta_generate_regions.py $refdir/ref.fa.fai $chunk_size > $refdir/ref.txt",
+#  "freebayes-parallel $refdir/ref.txt $cpus $fbopt -f $refdir/ref.fa $prefix.bam > $prefix.raw.vcf",
+  "freebayes-parallel $refdir/ref.txt $cpus -f $refdir/ref.fa $prefix.bam > $prefix.raw.vcf",
+#  "freebayes -f $refdir/ref.fa $prefix.bam > $prefix.raw.vcf",
+  # only keep homozygous and normalize(trim) REF/ALT and remove most tags
+  "bcftools view --include '$bcf_filter' $prefix.raw.vcf ".
+   " | vt normalize -r $refdir/ref.fa -".
+   " | bcftools annotate --remove '$KEEP_VCF_TAGS' > $prefix.filt.vcf",
+#   " > $prefix.filt.vcf",
+  # call consequences
+  ( $nfeat > 0 ? "snpEff ann -noLog -noStats -no-downstream -no-upstream -no-utr"
+                 ." -c $refdir/snpeff.config -dataDir . ref $prefix.filt.vcf > $prefix.vcf" 
+               : "cp $prefix.filt.vcf $prefix.vcf" ),
+  # prepare output files
+  "$BINDIR/snippy-vcf_to_tab --gff $refdir/ref.gff --ref $refdir/ref.fa --vcf $prefix.vcf > $prefix.tab",
+  # SNPS only
+  "$BINDIR/snippy-vcf_extract_subs $prefix.filt.vcf > $prefix.subs.vcf",
+  # consensus sequences
+  consensus_commands("$refdir/ref.fa", "$prefix.vcf", "$prefix.consensus.fa"),
+  consensus_commands("$refdir/ref.fa", "$prefix.subs.vcf", "$prefix.consensus.subs.fa", 1),
+  # any final stuff
+  @post_cmd,
+);
+
+if ($unmapped) {
+  my $qcpus = min(3, $cpus);
+  push @cmd, "samtools fastq -f 12 -v 20 --threads $qcpus -c 5 -N"
+            ." -s $prefix.unmapped_SE.fq.gz"
+            ." -0 $prefix.unmapped_R0.fq.gz"
+            ." -1 $prefix.unmapped_R1.fq.gz -2 $prefix.unmapped_R2.fq.gz"
+            ." $prefix.bam"
+}
+
+if ($report) {
+  my $qbam = "$tmpdir/$EXE.$$.Q$mapqual.bam";
+  push @cmd,
+    "samtools view -h -q $mapqual $prefix.bam | samtools sort $sortopt > $qbam",
+    "samtools index $qbam",
+    "$BINDIR/snippy-vcf_report --cpus $cpus --bam $qbam --ref $refdir/ref.fa --vcf $prefix.vcf > $prefix.report.txt",
+    "rm -f $qbam $qbam.bai",
+    ;
+}
+
+# . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 
+# run the commands
+
+# use this so we don't depend on File::Slurp
+sub append_to_file {
+  my($fname, @lines) = @_;
+  open my $fh, '>>', $fname;
+  print $fh @lines;
+  close $fh;
+}
+
+my $log_file = "$prefix.log";
+append_to_file($log_file, "### echo snippy $VERSION\n");
+append_to_file($log_file, "### cd $ORIGDIR\n\n### @CMDLINE\n");
+
+for my $cmd (@cmd) {
+  # put section in logfile
+  append_to_file($log_file, "\n### $cmd\n\n");
+  # run it
+  $cmd .= " 2>> $log_file";
+  msg("Running: $cmd");
+  system($cmd)==0 or err("Error running command, check $outdir/$log_file");
+}
+
+# . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 
+# produce the depth-masked reference
+#   . start with a sequence full of "-"
+#   . if coverage < mindepth add "N"
+#   . else add "[AGTC]" as appropriate (*** but NOT the SNPS ***)
+
+# this is the reference with SNPs applied (not indels)
+my $subbed = load_fasta_hash("$prefix.consensus.subs.fa");
+
+my $afa_fn = "$prefix.aligned.fa";
+msg("Generating reference aligned/masked FASTA relative to reference: $afa_fn");
+my %masked;
+for my $id (keys %$subbed) {
+  $masked{$id} = '-'x(length($subbed->{$id}));
+}
+open my $depth_fh, '-|', "samtools depth -aa -q $basequal -Q $mapqual -d 0 $prefix.bam";
+while (<$depth_fh>) {
+  my($seqid, $pos, $cov) = split m/\t/;
+  # if mincov=0 (AUTO) then it will allow everything except depth=0
+  my $new = $cov <= 0 ? $ZEROCOV_SYM
+                      : $cov < $mincov ? $LOWCOV_SYM
+                                       : substr($subbed->{$seqid}, $pos-1, 1);
+  substr $masked{$seqid}, $pos-1, 1, $new;
+}
+close $depth_fh;
+
+# . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+# go back and patch in 'n' at all heterozygous sites and low QUAL sites
+# these could be 0/1, or 1/2 even, so we select any "het" site
+# https://samtools.github.io/bcftools/bcftools-man.html#expressions
+# QUAL issue: https://github.com/tseemann/snippy/issues/228
+
+my $het_bp = 0;
+open my $het_fh, '-|',
+  qq{bcftools query -i 'GT="het" || QUAL<$minqual' -f '%CHROM\\t%POS\\t%REF\\n' $prefix.raw.vcf};
+while (<$het_fh>) {
+  chomp;
+  my($chr,$pos,$ref) = split m/\t/;
+  my $L = length($ref);
+  substr $masked{$chr}, $pos-1, $L, ($HET_SYM)x$L;
+  $het_bp += $L;
+}
+msg("Marked $het_bp heterozygous sites with '$HET_SYM'");
+
+save_fasta_hash($afa_fn, \%masked);
+
+# . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 
+# produce .bed and .gff files from the .csv
+
+open BED, '>', "$prefix.bed";
+
+open GFF, '>', "$prefix.gff";
+print GFF "##gff-version 3\n";
+
+open CSV, '>', "$prefix.csv";
+
+open HTML, '>', "$prefix.html";
+print HTML "<TABLE ID='$prefix' BORDER=1>\n";
+
+my %txt = (
+  'Reference'     => $reference,
+  'ReferenceSize' => sum( map { length($refseq{$_}) } keys %refseq ),
+  'ReadFiles'     => join(' ', @reads),
+  'Software'      => "$EXE $VERSION",
+  'DateTime'      => $t0->datetime,
+);
+
+msg("Creating extra output files: BED GFF CSV TXT HTML");
+my $num_var=0;
+open TAB, '<', "$prefix.tab";
+while (<TAB>) {
+  chomp;
+  my @col = split m/\t/;
+  my($chr,$pos,$type,$ref,$alt,@evid) = @col;
+  my $header = $pos !~ m/^\d+$/;
+  print CSV join(',', map { m/,/ ? qq{"$_"} : $_ } @col),"\n";
+  my $TD = $header ? "TH" : "TD";
+  print HTML "<TR>\n", map { "<$TD>$_\n" } @col;
+  next if $header;
+  print BED join("\t", $chr, $pos-1, $pos),"\n";
+  print GFF join("\t", $chr, "$EXE:$VERSION", 'variation', $pos, $pos, 
+                       '.', '.', 0, "note=$type $ref=>$alt @evid"),"\n";
+  $txt{"Variant-".uc($type)}++;
+  $num_var++;
+}
+close TAB;
+close BED;
+close GFF;
+close CSV;
+
+#print HTML "<CAPTION>Found $num_var variants in $reference</CAPTION>\n";
+print HTML "</TABLE>\n";
+close HTML;
+
+msg("Identified $num_var variants.");
+$txt{'VariantTotal'} = $num_var;
+
+open TXT, '>', "$prefix.txt";
+for my $key (sort keys %txt) {
+  print TXT join("\t", $key, $txt{$key}),"\n";
+}
+close TXT;
+
+
+# . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 
+# clean up
+
+if ($cleanup) {
+  my @delme = map { "$refdir/ref.fa$_" } qw(.fai .amb .ann .bwt .pac .sa);
+  push @delme, ("$prefix.bam", "$prefix.bam.bai", "$prefix.raw.vcf");
+  push @delme, glob("$prefix.*.tbi");
+  push @delme, glob("$prefix.*.csi");
+  push @delme, glob("$prefix.*.gz");
+  push @delme, glob("$prefix.consensus*.fa");
+  push @delme, "ref.fa"; # symlink
+  for my $file (@delme) {
+    msg("Deleting: $file");
+    unlink $file;
+  }
+  for my $subdir ('genomes', 'ref') {
+    my $d = "$refdir/$subdir";
+    msg("Removing folder: $d");
+    remove_tree($d);
+  }
+}
+
+# . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 
+# report results
+
+msg("Result folder: $outdir");
+msg("Result files:");
+for my $fname (<$prefix.*>) {
+  msg("* $outdir/$fname");
+}
+
+# . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 
+# calculate time spent
+
+my $t1 = localtime;
+my $secs = $t1 - $t0; # returns a Time::Seconds
+msg("Walltime used:", $secs->pretty);
+
+# . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 
+# inspiring final message
+
+my @motd = (
+  "May the SNPs be with you.",
+  "Wishing you a life free of homopolymer errors.",
+  "Found a bug? Post it at $URL/issues",
+  "Have a suggestion? Tell me at $URL/issues",
+  "The Snippy manual is at $URL/blob/master/README.md",
+  "Questionable SNP? Try the --report option to see the alignments.",
+  "Did you know? Snippy is a combination of SNP, Skippy, and snappy.",
+);
+srand( $$ + $secs + $num_var + $refsize ); # seed
+msg( $motd[ int(rand(scalar(@motd))) ] );
+
+msg("Done.");
+
+#----------------------------------------------------------------------
+
+sub load_fasta_hash {
+  my($fname) = @_;
+  my $hash;
+  my $in = Bio::SeqIO->new(-file=>$fname, -format=>"fasta");
+  while (my $seq = $in->next_seq) {
+    $hash->{ $seq->id } = uc( $seq->seq );
+  }
+  return $hash;
+}
+
+#----------------------------------------------------------------------
+
+sub save_fasta_hash {
+  my($fname, $hash) = @_;
+  my $out = Bio::SeqIO->new(-file=>">$fname", -format=>"fasta");
+  for my $id (keys %$hash) {
+    $out->write_seq(
+      Bio::Seq->new(-id=>$id, -seq=>$hash->{$id}, -alphabet=>'dna')
+    );
+  }
+  return $hash;
+}
+
+#----------------------------------------------------------------------
+
+sub guess_format {
+  my($fname) = @_;
+  open FH, '<', $fname or return;
+  my($line) = <FH>;
+  $line or return;
+  close FH;
+  return 'genbank' if $line =~ m/^LOCUS/;
+  return 'embl' if $line =~ m/^ID\s+/;
+  return 'fasta' if $line =~ m/^\s*>/;
+  return;
+}
+
+#----------------------------------------------------------------------
+
+sub msg {
+  return if $quiet;
+  my $t = localtime;
+  my $line = "[".$t->hms."] @_\n";
+  print STDERR $line;
+}
+
+#----------------------------------------------------------------------
+
+sub err {
+  $quiet=0;
+  msg(@_);
+  exit(2);
+}
+
+#----------------------------------------------------------------------
+
+sub version {
+  print STDERR "$EXE $VERSION\n";
+  exit;
+}
+
+#----------------------------------------------------------------------
+
+sub show_citation {
+  print STDERR << "EOCITE";
+  
+If you use $EXE in your work, please cite:
+
+    Seemann T (2015)
+    $EXE: $SYNOPSIS
+    $URL
+    
+Thank you.
+
+EOCITE
+
+  exit;
+}
+
+#----------------------------------------------------------------------
+# Option setting routines
+
+sub setOptions {
+  use Getopt::Long;
+
+  @Options = (
+    'GENERAL',
+    {OPT=>"help",    VAR=>\&usage,             DESC=>"This help"},
+    {OPT=>"version", VAR=>\&version,           DESC=>"Print version and exit"},
+    {OPT=>"citation",VAR=>\&show_citation,     DESC=>"Print citation for referencing $EXE"},
+    {OPT=>"check!",  VAR=>\$check, DEFAULT=>0, DESC=>"Check dependences are installed then exit"},
+    {OPT=>"force!",  VAR=>\$force, DEFAULT=>0,  DESC=>"Force overwrite of existing output folder"},
+    {OPT=>"quiet!",  VAR=>\$quiet, DEFAULT=>0, DESC=>"No screen output"},
+    'RESOURCES',
+    {OPT=>"cpus=i",  VAR=>\$cpus, DEFAULT=>8,  DESC=>"Maximum number of CPU cores to use"},
+    {OPT=>"ram=i",   VAR=>\$ram, DEFAULT=>8,  DESC=>"Try and keep RAM under this many GB"},
+    {OPT=>"tmpdir=s",  VAR=>\$tmpdir, DEFAULT=>$ENV{TMPDIR}||'/tmp', DESC=>"Fast temporary storage eg. local SSD"},
+    'INPUT',
+    {OPT=>"reference=s",  VAR=>\$reference, DEFAULT=>'',  DESC=>"Reference genome. Supports FASTA, GenBank, EMBL (not GFF)"},
+    {OPT=>"R1|pe1|left=s",  VAR=>\$pe1, DEFAULT=>'', DESC=>"Reads, paired-end R1 (left)"},
+    {OPT=>"R2|pe2|right=s",  VAR=>\$pe2, DEFAULT=>'', DESC=>"Reads, paired-end R2 (right)"},
+    {OPT=>"se|single=s",  VAR=>\$se, DEFAULT=>'', DESC=>"Single-end reads"},
+    {OPT=>"ctgs|contigs=s",  VAR=>\$ctgs, DEFAULT=>'', DESC=>"Don't have reads use these contigs"},
+    {OPT=>"peil=s",  VAR=>\$peil, DEFAULT=>'', DESC=>"Reads, paired-end R1/R2 interleaved"},
+    {OPT=>"bam=s",  VAR=>\$bam, DEFAULT=>'', DESC=>"Use this BAM file instead of aligning reads"},
+    {OPT=>"targets=s",  VAR=>\$targets, DEFAULT=>'', DESC=>"Only call SNPs from this BED file"},
+    {OPT=>"subsample=f",  VAR=>\$subsample, DEFAULT=>1, DESC=>"Subsample FASTQ to this proportion"},
+    'OUTPUT',
+    {OPT=>"outdir=s",  VAR=>\$outdir, DEFAULT=>'',  DESC=>"Output folder"},
+    {OPT=>"prefix=s",  VAR=>\$prefix, DEFAULT=>'snps',  DESC=>"Prefix for output files"},
+    {OPT=>"report!",  VAR=>\$report, DEFAULT=>0,  DESC=>"Produce report with visual alignment per variant"},
+    {OPT=>"cleanup!",  VAR=>\$cleanup, DEFAULT=>0,  DESC=>"Remove most files not needed for snippy-core (inc. BAMs!)"},
+    {OPT=>"rgid=s", VAR=>\$rgid, DEFAULT=>'',  DESC=>"Use this \@RG ID: in the BAM header"},
+    {OPT=>"unmapped!",  VAR=>\$unmapped, DEFAULT=>0,  DESC=>"Keep unmapped reads in BAM and write FASTQ"},
+    'PARAMETERS',
+    {OPT=>"mapqual=i",  VAR=>\$mapqual,  DEFAULT=>60,  DESC=>"Minimum read mapping quality to consider"},
+    {OPT=>"basequal=i", VAR=>\$basequal, DEFAULT=>13,  DESC=>"Minimum base quality to consider"},
+    {OPT=>"mincov=i",   VAR=>\$mincov,   DEFAULT=>10,  DESC=>"Minimum site depth to for calling alleles"},
+    {OPT=>"minfrac=f",  VAR=>\$minfrac,  DEFAULT=>0,   DESC=>"Minumum proportion for variant evidence (0=AUTO)"},
+    {OPT=>"minqual=f",  VAR=>\$minqual,  DEFAULT=>100, DESC=>"Minumum QUALITY in VCF column 6"},
+    {OPT=>"maxsoft=i",  VAR=>\$maxsoft,  DEFAULT=>10,  DESC=>"Maximum soft clipping to allow"},
+    {OPT=>"bwaopt=s",   VAR=>\$bwaopt,   DEFAULT=>'',  DESC=>"Extra BWA MEM options, eg. -x pacbio"},
+    {OPT=>"fbopt=s",    VAR=>\$fbopt,    DEFAULT=>'',  DESC=>"Extra Freebayes options, eg. --theta 1E-6 --read-snp-limit 2"},
+  );
+
+  (!@ARGV) && (usage(1));
+
+  &GetOptions(map {$_->{OPT}, $_->{VAR}} grep { ref } @Options) || usage(1);
+
+  # Now setup default values.
+  foreach (@Options) {
+    if (ref $_ && defined($_->{DEFAULT}) && !defined(${$_->{VAR}})) {
+      ${$_->{VAR}} = $_->{DEFAULT};
+    }
+  }
+}
+
+#----------------------------------------------------------------------
+
+sub usage {
+  my($exitcode) = @_;
+  $exitcode = 0 if $exitcode eq 'help'; # what gets passed by getopt func ref
+  $exitcode ||= 0;
+  select STDERR if $exitcode; # write to STDERR if exitcode is error
+
+  print "SYNOPSIS\n  $EXE $VERSION - $SYNOPSIS\n",
+        "USAGE\n",
+        "  $EXE [options] --outdir <dir> --ref <ref> --R1 <R1.fq.gz> --R2 <R2.fq.gz>\n",
+        "  $EXE [options] --outdir <dir> --ref <ref> --ctgs <contigs.fa>\n",
+        "  $EXE [options] --outdir <dir> --ref <ref> --bam <reads.bam>\n",
+        "";
+
+  foreach (@Options) {
+    if (ref) {
+      my $def = defined($_->{DEFAULT}) ? " (default '$_->{DEFAULT}')" : "";
+      $def = ($def ? ' (default OFF)' : '(default ON)') if $_->{OPT} =~ m/!$/;
+      my $opt = $_->{OPT};
+      $opt =~ s/\|.*(?=\=)//;  # hide 'alternative' legacy names
+      $opt =~ s/!$//;      # bool
+      $opt =~ s/=s$/ F/;   # string (or file)
+      $opt =~ s/=i$/ N/;   # int
+      $opt =~ s/=f$/ n.n/; # float
+      printf "  --%-14s %s%s\n", $opt, $_->{DESC}, $def;
+    }
+    else {
+      print "$_\n";
+    }      
+  }
+  print "SOURCE\n  $URL - $AUTHOR\n";
+  exit($exitcode);
+}
+
+#----------------------------------------------------------------------
+

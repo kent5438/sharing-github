@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+
+
+
+<title>SuperNova Assembly Summary Result</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/font-awesome-4.5.0/css/font-awesome.min.css" rel="stylesheet" />
+
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+<link rel="stylesheet" href="css/styles.css" />
+
+</head>
+
+<body>
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+  height: auto;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+</style>
+
+
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+  padding-top: 51px;
+  padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar)  */
+.section h1 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+
+.section h2 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h3 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h4 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h5 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h6 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+</style>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.parent().addClass('active');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+
+
+<div class="container-fluid main-container">
+
+<!-- tabsets -->
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+</script>
+
+<!-- code folding -->
+
+
+
+
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = false;
+    options.smoothScroll = false;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+  padding-left: 25px;
+  text-indent: 0;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+.tocify-subheader {
+  display: inline;
+}
+.tocify-subheader .tocify-item {
+  font-size: 0.95em;
+}
+
+</style>
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row-fluid">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html"><img src="images/logo.jpg" width="50%" height="50%"></a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">
+    <span class="fa fa-home"></span>
+     
+    Summary
+  </a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://support.10xgenomics.com/de-novo-assembly/software/overview/welcome">
+    <span class="fa fa-question fa-lg"></span>
+     
+    Help
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">SuperNova Assembly Summary Result</h1>
+
+</div>
+
+
+<hr />
+<section id="fastqs-demultiplexing-summary" class="level3">
+<h3>FASTQs Demultiplexing Summary</h3>
+<p><strong>The supernova mkfastq pipeline is a 10x-enhanced wrapper around Illumina bcl2fastq, which demultiplexes BCL files from a sequencer into FASTQs for analysis.</strong></p>
+<p><a href="https://support.10xgenomics.com/de-novo-assembly/software/pipelines/latest/using/mkfastq" target="_blank">10x Supernova mkfastq</a> &lt;— Tutorial</p>
+<p><a href="files/Demultiplex_report/index.html" target="_blank">Demlutiplexing Result</a> &lt;— <strong>Report !</strong></p>
+<hr />
+</section>
+<section id="assembly-summary" class="level3">
+<h3>Assembly Summary</h3>
+<p><strong>Supernova generates highly-contiguous, phased, whole-genome de novo assemblies from a Chromium-prepared library.</strong></p>
+<p><a href="https://support.10xgenomics.com/de-novo-assembly/software/pipelines/latest/using/running" target="_blank">10x Supernova Assembly Process</a> &lt;— Tutorial</p>
+<p><a href="https://support.10xgenomics.com/de-novo-assembly/software/pipelines/latest/output/generating" target="_blank">10x Supernova 4 Output of Assembly</a> &lt;— Tutorial</p>
+<ol type="1">
+<li><a href="files/raw.fasta.gz"><strong>raw</strong></a>: The raw style represents every edge in the assembly as a FASTA record. (seen as red segments in the cartoon). These include microbubble arms and gaps.</li>
+</ol>
+<p><img src="https://support.10xgenomics.com/img/de-novo/style1.png" /></p>
+<ol start="2" type="1">
+<li><a href="files/megabubbles.fasta.gz"><strong>megabubbles</strong></a>: In this style each megabubble arm corresponds to a FASTA record, as does each intervening sequence.</li>
+</ol>
+<p><img src="https://support.10xgenomics.com/img/de-novo/style2.png" /></p>
+<ol start="3" type="1">
+<li><a href="files/pseudohap.fasta.gz"><strong>pseudohap</strong></a>: The pseudohap style generates a single record per scaffold.</li>
+</ol>
+<p><img src="https://support.10xgenomics.com/img/de-novo/style3.png" /></p>
+<ol start="4" type="1">
+<li><a href="files/pseudohap2.1.fasta.gz"><strong>pseudohap2.1</strong></a> <a href="files/pseudohap2.2.fasta.gz"><strong>pseudohap2.2</strong></a> : This style is like the pseudohap option, except that for each scaffold, two ‘parallel’ pseudohaplotypes are created and placed in separate FASTA files. Records in these files are parallel to each other.</li>
+</ol>
+<p><img src="https://support.10xgenomics.com/img/de-novo/style4.png" /></p>
+<pre><code>## 
+## --------------------------------------------------------------------------------
+## SUMMARY
+## --------------------------------------------------------------------------------
+## - Wed Dec 06 11:01:03 2017
+## - [Bird_assembly]  
+## - software release = 1.2.2(e74748e9d)
+## - assembly checksum = 980,151,444,441,699,350
+## --------------------------------------------------------------------------------
+## INPUT
+## -  370.02 M  = READS          = number of reads; ideal 800M-1200M for human
+## -  139.50  b = MEAN READ LEN  = mean read length after trimming; ideal 140
+## -   30.06  x = EFFECTIVE COV  = effective read coverage; ideal ~42 for nominal 56x cov
+## -   78.23  % = READ TWO Q30   = fraction of Q30 bases in read 2; ideal 75-85
+## -  375.00  b = MEDIAN INSERT  = median insert size; ideal 0.35-0.40
+## -   87.18  % = PROPER PAIRS   = fraction of proper read pairs; ideal &gt;= 75
+## -   45.49 Kb = MOLECULE LEN   = weighted mean molecule size; ideal 50-100
+## -  505.00  b = HETDIST        = mean distance between heterozygous SNPs
+## -    5.64  % = UNBAR          = fraction of reads that are not barcoded
+## -  270.00    = BARCODE N50    = N50 reads per barcode
+## -   12.89  % = DUPS           = fraction of reads that are duplicates
+## -   55.09  % = PHASED         = nonduplicate and phased reads; ideal 45-50
+## --------------------------------------------------------------------------------
+## OUTPUT
+## -  828.00    = LONG SCAFFOLDS = number of scaffolds &gt;= 10 kb
+## -   15.19 Kb = EDGE N50       = N50 edge size
+## -   95.07 Kb = CONTIG N50     = N50 contig size
+## -    3.86 Mb = PHASEBLOCK N50 = N50 phase block size
+## -   11.74 Mb = SCAFFOLD N50   = N50 scaffold size
+## -    1.16 Gb = ASSEMBLY SIZE  = assembly size (only scaffolds &gt;= 10 kb)
+## --------------------------------------------------------------------------------</code></pre>
+<hr />
+</section>
+<section id="supplementary" class="level3">
+<h3>Supplementary</h3>
+<ol type="1">
+<li><p><a href="https://support.illumina.com/content/dam/illumina-support/documents/documentation/software_documentation/bcl2fastq/bcl2fastq2_guide_15051736_v2.pdf" target="_blank">bcl2fastq User Guide</a>: Illumina demultiplexing tool</p></li>
+<li><p><a href="https://notepad-plus-plus.org/zh/" target="_blank">Notepad++</a>: 適合觀看所有文字or序列檔</p></li>
+</ol>
+<hr />
+</section>
+
+<footer class="page-copyright-tp2">
+  <div class="page-copyright-con">
+    <div class="copyright-con">
+      <div class="cp-info-bk">
+        <p>新北市汐止區新台五路一段100號14樓</p>
+        <p>14F., No.100, Sec. 1, Xintai 5th Rd., Xizhi Dist., New Taipei City Taiwan</p>
+        <p>Tel: 02-2696-1658　Fax: 02-2696-1589    Tollfree: 0800-660-618</p>
+		<p> Copyright © 2017-2018 Genomics All Rights Reserved. </p>
+      </div>
+      </div>
+  </div>
+</footer>
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

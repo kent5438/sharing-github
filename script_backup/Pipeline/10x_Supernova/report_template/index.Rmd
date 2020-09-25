@@ -1,0 +1,83 @@
+---
+title: "SuperNova Assembly Summary Result"
+output: 
+  html_document:
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align="center")
+library(DT)
+library(dplyr)
+```
+
+***
+
+
+### FASTQs Quality Summary
+
+```{r, out.width = "700px", out.height="700px", echo=FALSE, message=FALSE, warning=FALSE}
+if(file.exists("files/multiqc_fastqc.html")){
+	knitr::include_url("files/multiqc_fastqc.html")
+} else {
+	message("Please view 'FASTQs Demultiplexing Summary'")
+}
+ ```
+
+***
+
+### Assembly Summary
+
+__Supernova generates highly-contiguous, phased, whole-genome de novo assemblies from a Chromium-prepared library.__
+
+<a href="https://support.10xgenomics.com/de-novo-assembly/software/pipelines/latest/using/running" target="_blank">10x Supernova Assembly Process</a> <--- Tutorial
+
+<a href="https://support.10xgenomics.com/de-novo-assembly/software/pipelines/latest/output/generating" target="_blank">10x Supernova 4 Output of Assembly</a> <--- Tutorial
+
+1. [**raw**](files/raw.fasta.gz): The raw style represents every edge in the assembly as a FASTA record. (seen as red segments in the cartoon). These include microbubble arms and gaps.
+
+![](https://support.10xgenomics.com/img/de-novo/style1.png)
+
+2. [**megabubbles**](files/megabubbles.fasta.gz): In this style each megabubble arm corresponds to a FASTA record, as does each intervening sequence.
+
+![](https://support.10xgenomics.com/img/de-novo/style2.png)
+
+3. [**pseudohap**](files/pseudohap.fasta.gz): The pseudohap style generates a single record per scaffold.
+
+![](https://support.10xgenomics.com/img/de-novo/style3.png)
+
+4. [**pseudohap2.1**](files/pseudohap2.1.fasta.gz) [**pseudohap2.2**](files/pseudohap2.2.fasta.gz) : This style is like the pseudohap option, except that for each scaffold, two ‘parallel’ pseudohaplotypes are created and placed in separate FASTA files. Records in these files are parallel to each other.
+
+![](https://support.10xgenomics.com/img/de-novo/style4.png)
+
+<a href="files/quast_results/latest/report.html" target="_blank">report.html</a> <--- Detailed Assembly Summary (use pseudohap.fasta)
+
+
+
+```{perl, echo=FALSE, message=FALSE, warning=FALSE}
+open(my $fh, '<', 'files/Assembly_report.txt')
+    || die "Could not open file: $!";
+while (<$fh>) 
+{ # each line is stored in $_, with terminating newline
+  # chomp, short for chomp($_), removes the terminating newline
+    chomp; 
+    print("$_\n");
+}
+close $fh;
+```
+
+***
+
+### Supplementary
+
+1. <a href="https://support.illumina.com/content/dam/illumina-support/documents/documentation/software_documentation/bcl2fastq/bcl2fastq2_guide_15051736_v2.pdf" target="_blank">bcl2fastq User Guide</a>:
+Illumina demultiplexing tool
+
+2. <a href="https://notepad-plus-plus.org/zh/" target="_blank">Notepad++</a>: 適合觀看所有文字or序列檔
+
+***
+
+

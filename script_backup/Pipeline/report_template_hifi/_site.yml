@@ -1,0 +1,35 @@
+name: "Pacbio Denovo Assembly report"
+output_dir: "report"
+
+navbar:
+  title: '<img src="images/logo.jpg" width="50%" height="50%">'
+  left:
+    - text: "Home"
+      icon: fa-home
+      href: index.html
+    - text: "Experiment"
+      href: experiment.html
+#    - text: "Seq QC"
+#      href: seqQC.html
+    - text: "Assembly"
+      href: assembly.html
+    - text: "Annotation"
+      href: annotation.html
+    - text: "Useful Tools"
+      href: tools.html
+  right:
+    - text: "Feedback"
+      icon: fa-pie-chart
+      href: https://www.surveycake.com/s/lnPVL
+    - text: "Help"
+      icon: fa-question fa-lg
+      href: files/Help.pdf
+    - text: "Genomics NGS!"
+      href: http://www.genomics.com.tw/ngs
+output:
+  html_document:
+    theme: default
+    highlight: tango
+    include:
+      after_body: html/footer.html
+    css: css/styles.css

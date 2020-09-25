@@ -1,0 +1,1 @@
+/export/EC1680U/perl/bin/Assembly/Canu_Asm_annotation.pl

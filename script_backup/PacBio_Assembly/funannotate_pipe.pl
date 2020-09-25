@@ -1,0 +1,1 @@
+/export/EC1680U/perl/bin/Assembly/funannotate_pipe.pl

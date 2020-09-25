@@ -1,0 +1,102 @@
+---
+title: "Useful Tools"
+output:
+  html_document:
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align="center")
+```
+
+***
+
+### 
+
+## 基本資料處理
+
+<a href="https://notepad-plus-plus.org/zh/" target="_blank">Notepad++</a>: 適合觀看所有文字or序列檔
+
+__[Why?] 生資分析產生出來的data大部分是在linux環境，Windows內建的記事本無法有效呈現__
+
+<br>
+
+<a href="https://delim.co/" target="_blank">Comma separator</a>: 分隔符號轉換行
+
+__如：comma -> tab | space -> tab__
+
+<br>
+
+## 線上繪製圖形工具
+
+<a href="http://bioinfogp.cnb.csic.es/tools/venny/" target="_blank">Venny diagram</a>: 
+
+__多個樣品取交集基因__
+
+<br>
+
+<a href="https://biit.cs.ut.ee/clustvis/" target="_blank">Clustvis</a>: Plot heatmap / PCA
+
+__輕鬆繪製你想要的heatmap與PCA，另外也可加入組別資訊 (限制為1200行)__
+
+<br>
+
+<a href="https://plot.ly/create/#/" target="_blank">plotly</a>: Bar Plot / Pie Plot / Box Plot / Violin Plot / Histogram ...etc
+
+<a href="https://raw.githubusercontent.com/kent5438/sharing-github/master/pics/plotly_graph.png" target ="_blank">可繪製多種統計圖型</a>
+
+<br>
+
+## GO Enrichment客製化工具
+
+<a href="http://revigo.irb.hr/" target="_blank">REVIGO</a>: 視覺化GO data (實用!)
+
+__Very useful for GO enrichment data__
+
+<br>
+
+<a href="http://www.webgestalt.org/option.php#" target="_blank">WEB-based GEne SeT AnaLysis Toolkit</a>: GSEA分析 & GO DAG plot
+
+__Very useful & fancy plot for GSEA analysis & GO DAG plot (Input data: GO term from GO enrichment table)__
+
+<br>
+
+<a href="http://bioinformatics.sdstate.edu/go/" target="_blank">ShinyGO</a>: Gene Ontology Enrichment Analysis + more
+
+__Very useful & fancy plot for GO / KEGG view (Input data: Gene list converted from ref_ID column)__
+
+<br>
+
+## 代謝合成路徑分析
+
+<a href="http://www.genome.jp/kegg/tool/map_pathway1.html" target="_blank">KEGG pathway mapping</a>: 
+
+__透過KEGG網站搜索enzyme或基因的代謝路徑__
+
+<br>
+
+<a href="https://reactome.org/" target="_blank">Reactome Pathway Database</a>:
+
+__Reactome is a free, open-source, curated and peer-reviewed pathway database.__
+
+<br>
+
+## 資料庫
+
+<a href="http://www.uniprot.org/" target="_blank">Uniprot database</a>: 世界三大基因/蛋白質資料庫
+
+__Search for the Uniprot Gene ID__
+
+<br>
+
+<a href="http://www.uniprot.org/mapping/" target="_blank">ID mapping</a>: 基因名稱轉換（實用！）
+
+__Help for conversion between "Uniprot Gene ID" and "NCBI Gene ID"__
+
+<br>
+
+***
+

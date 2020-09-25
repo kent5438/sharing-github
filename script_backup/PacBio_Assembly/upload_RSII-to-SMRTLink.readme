@@ -1,0 +1,3 @@
+sudo su - smrtanalysis
+cd /export/EC2480U/PacBio/PB180*
+for i in `find . | grep 'metadata.xml'`; do /opt/smrtlink/smrtcmds/bin/pbservice import-rs-movie $i --host 192.168.1.182 --port 9091; done

@@ -1,0 +1,60 @@
+---
+title: "Sequence QC result"
+output: 
+  html_document:
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align="center")
+library(DT)
+library(dplyr)
+```
+
+***
+
+> __File path: 2_Subread/__
+
+__Each polymerase read is partitioned to form one or more subreads, which contain sequence from a single pass of a polymerase on a single strand of an insert within a SMRTbell™ template and no adapter sequences. The subreads contain the full set of quality values and kinetic measurements. Subreads are useful for applications like de novo assembly, resequencing, base modification analysis, and so on.__
+
+```
+[Notice]:
+Due to fasta/fastq file size are too large, we’re not provided in the report. If user required, hard-copy is a better alternative data transfer method.
+```
+
+<br>
+
+### Pre-assembly Process Summary 
+
+(Corrected reads ---> Overlap-based-trim (OBT) reads ---> Unitig reads)
+
+## Corrected reads
+
+```{r, out.width = "600px", echo=FALSE, message=FALSE, warning=FALSE}
+knitr::include_graphics("files/1_Assembly/AssemblyStats/readlengths-cor.png")
+```
+
+<br>
+
+### OBT reads
+
+```{r, out.width = "600px", echo=FALSE, message=FALSE, warning=FALSE}
+knitr::include_graphics("files/1_Assembly/AssemblyStats/readlengths-obt.png")
+```
+
+### Unitig reads
+
+```{r, out.width = "600px", echo=FALSE, message=FALSE, warning=FALSE}
+knitr::include_graphics("files/1_Assembly/AssemblyStats/readlengths-utg.png")
+```
+
+***
+
+### Reference
+```
+- Canu: scalable and accurate long-read assembly via adaptive k-mer weighting and repeat separation
+Sergey Koren, Brian P. Walenz, Konstantin Berlin, Jason R. Miller, Adam M. Phillippy. bioRxiv 071282; doi: https://doi.org/10.1101/071282
+```

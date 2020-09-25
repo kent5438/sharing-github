@@ -1,0 +1,190 @@
+---
+title: "Quantitation & DE Result"
+output:
+  html_document:
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align="center")
+library(DT)
+library(readxl)
+library(dplyr)
+```
+
+***
+
+> __File path: files/2_Quantitation/__
+
+## Alignment Summary
+
+In this stage, the de-nove/reseq assembled transcriptome will be regarded as backbone reference. All of the samples are going to be aligned for calculating the abundance of read count. The alignment tool we used is “bowtie2” [4], and the read count quantification tool we used is “RSEM” [5]. The alignment QC report we are using “Qualimap v2” for alignment evaluation [6].
+
+<a href="files/2_Quantitation/multiqc_qualimap.html" target="_blank">Alignment Summary</a>
+
+```{r, out.width = "700px", out.height="700px", echo=FALSE, message=FALSE, warning=FALSE}
+knitr::include_url("files/2_Quantitation/multiqc_qualimap.html")
+```
+
+***
+
+## Read Count Quantification by RSEM
+
+<br>
+
+### Read Count Table Summary
+
+[Full Table Download (.xlsx)](files/2_Quantitation/final_RSEM_isoforms_report.xlsx)
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+quant_report <- read_excel("files/2_Quantitation/final_RSEM_isoforms_report.xlsx")
+datatable(quant_report,
+    escape=F,
+    filter = "top",
+    rownames= F,
+    extensions = list("ColReorder" = NULL,
+                      "Buttons" = NULL),
+    options = list(
+                dom = 'BRrltpi',
+                autoWidth=TRUE,
+                ColReorder = TRUE,
+                scrollX = TRUE,
+                columnDefs = list(
+                  list(className = "dt-center", targets = 1:ncol(quant_report)-1)
+                  #list(targets = c(3:9, 11, 14:17), visible = FALSE)
+                  #list(targets=4, 
+                  #     render = JS("function(data, type, row, meta) {",
+                  #                 "return type === 'display' && data.length > 20 ?",
+                  #                 "'<span title=\"' + data + '\">' + data.substr(0, 20) + '...</span>' : data;","}"))
+                ),
+                buttons =
+                  list(
+                    'copy',
+                    'print',
+                    list(
+                      extend = 'collection',
+                      buttons = c('csv', 'excel', 'pdf'),
+                      text = 'Download'
+                    ),
+                    I('colvis')
+                  )
+              )
+)
+```
+
+***
+
+## Differential Gene Expression (DGE)
+
+<br>
+
+### DGE Summary
+
+[Full Table Download (.xlsx)](files/3_DiffExpression/final_DE_comparison.report.xlsx)
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+de_report <- read_excel("files/3_DiffExpression/final_DE_comparison.report.xlsx")
+datatable(de_report,
+    escape=F,
+    filter = "top",
+    rownames= F,
+    extensions = list("ColReorder" = NULL,
+                      "Buttons" = NULL),
+    options = list(
+                dom = 'BRrltpi',
+                autoWidth=TRUE,
+                ColReorder = TRUE,
+                scrollX = TRUE,
+                columnDefs = list(
+                  list(className = "dt-center", targets = 1:ncol(de_report)-1)
+                  #list(targets = c(3:9, 11, 14:17), visible = FALSE)
+                  #list(targets=4, 
+                  #     render = JS("function(data, type, row, meta) {",
+                  #                 "return type === 'display' && data.length > 20 ?",
+                  #                 "'<span title=\"' + data + '\">' + data.substr(0, 20) + '...</span>' : data;","}"))
+                ),
+                buttons =
+                  list(
+                    'copy',
+                    'print',
+                    list(
+                      extend = 'collection',
+                      buttons = c('csv', 'excel', 'pdf'),
+                      text = 'Download'
+                    ),
+                    I('colvis')
+                  )
+              )
+) %>%
+  formatCurrency(1:ncol(de_report), currency = "", interval = 3, mark = ",", digits=2)
+```
+
+<br>
+
+### Gene Count Heatmap (by Samples)
+
+Plot by all samples TMM expression and normalized by z-score (need to at least 3 samples)
+
+```{r, out.width = "600px", out.height="800px", echo=FALSE, message=FALSE, warning=FALSE}
+if(file.exists("files/3_DiffExpression/all_samples_heatmap.png")){
+  knitr::include_graphics("files/3_DiffExpression/all_samples_heatmap.png")
+}
+```
+
+<br>
+
+### Gene Fold-Change Heatmap (by Groups)
+
+Plot by Fold change of all comparisons (need to at least 3 groups)
+
+```{r, out.width = "600px", out.height="800px", echo=FALSE, message=FALSE, warning=FALSE}
+if(file.exists("files/3_DiffExpression/all_groups_heatmap.png")){
+  knitr::include_graphics("files/3_DiffExpression/all_groups_heatmap.png")
+}
+```
+
+<br>
+
+### Sample's Correlation 
+
+Plot by all samples TMM expression and calculate by pearson correlation coefficient (need to at least 3 samples)
+
+```{r, out.width = "600px", out.height="600px", echo=FALSE, message=FALSE, warning=FALSE}
+if(file.exists("files/3_DiffExpression/all_samples_correlation.png")){
+  knitr::include_graphics("files/3_DiffExpression/all_samples_correlation.png")
+}
+```
+
+<br>
+
+### PCA of all samples (need to at least 3 samples)
+Plot by all samples TMM expression and calculate by pearson correlation coefficient.
+- Feature Elimination
+- Feature Extraction
+(need to at least 3 samples)
+
+```{r, out.width = "600px", out.height="600px", echo=FALSE, message=FALSE, warning=FALSE}
+if(file.exists("files/3_DiffExpression/all_samples_PCA.png")){
+  knitr::include_graphics("files/3_DiffExpression/all_samples_PCA.png")
+}
+```
+
+<br>
+
+### Scatter Plot for Gene Expression {.tabset .tabset-fade}
+
+###COMPARISON###
+
+***
+
+## Reference
+```
+1. "SPAdes v3.10.1" - Assembler
+S. Nurk, A. Bankevich, D. Antipov, A. A. Gurevich, A. Korobeynikov, A. Lapidus, A. D. Prjibelsky, A. Pyshkin, A. Sirotkin, Y. Sirotkin, R. Stepanauskas, J. S. McLean, R. Lasken, S. R. Clingenpeel, T. Woyke, G. Tesler, M. A. Alekseyev, and P. A. Pevzner. Assembling Single-Cell Genomes and Mini-Metagenomes From Chimeric MDA Products. Journal of Computational Biology 20(10) (2013), 714-737. doi:10.1089/cmb.2013.0084
+
+2. "QUAST v4.5" - Assembly evalutation
+Gurevich A., Saveliev V., Vyahhi N., Tesler G. QUAST: quality assessment tool for genome assemblies. Bioinformatics, 2013.
+```

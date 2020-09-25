@@ -1,0 +1,134 @@
+---
+title: "Assembly result"
+output:
+  html_document:
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align="center")
+library(DT)
+library(dplyr)
+```
+
+***
+
+> __File path: 1_Assembly/__
+
+The canu pipeline, that is, what it actually computes, comprises of computing overlaps and processing the overlaps to some result. Each of the three tasks (read correction, read trimming and unitig construction) follow the same pattern [1]:
+
+1. Load reads into the read database, gkpStore.
+
+2. Compute k-mer counts in preparation for the overlap computation.
+
+3. Compute overlaps.
+
+4. Load overlaps into the overlap database, ovlStore.
+
+5. Do something interesting with the reads and overlaps.
+
+a.) The read correction task will replace the original noisy read sequences with consensus sequences computed from overlapping reads.
+
+b.) The read trimming task will use overlapping reads to decide what regions of each read are high-quality sequence, and what regions should be trimmed. After trimming, the single largest high-quality chunk of sequence is retained.
+
+c.) The unitig construction task finds sets of overlaps that are consistent, and uses those to place reads into a multialignment layout. The layout is then used to generate a consensus sequence for the unitig.
+
+<br>
+
+However, current long-read assembly software still typically assumes that the contigs they produce are linear. In contrast, the genome of almost every species contains at least one circular DNA structure, such as bacterial chromosomes and plasmids. Thus, a useful circularization of genome assembly tool – “Circlator v1.4.0” is our default pipeline to correct and linearize the genome [2]. Finally, we are using “QUAST v4.5” for evaluating the assembled genome quality [3].
+
+***
+
+### Canu Raw Assembly Summary
+
+[Canu raw assembled contigs (.fasta)](files/1_Assembly/<prefix>_polished_assembly.fasta)
+
+<a href="files/1_Assembly/quast/report.html" target="_blank">[Assembly Report by QUAST (.html)]</a>
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+raw_polished_report <- read.table("files/1_Assembly/quast/report.tsv", header=T, check.names=F, sep="\t")
+
+datatable(raw_polished_report, options = list(
+  dom = 't',
+  columnDefs = list(list(className = 'dt-center', targets = 2))
+)) %>%
+  formatCurrency('<prefix>', currency = "", interval = 3, mark = ",", digits=0)
+```
+
+***
+
+### Fixed and Circularised Polished Assembly Summary (Circlator: a tool to circularize genome assemblies)
+
+a.) Identify each circular sequence and output a linearised version of it.
+
+b.) Join contigs together.
+
+c.) If a dnaA gene is found, then that is used as the starting position.
+
+[Fixed and circularised contigs (.fasta)](files/1_Assembly/<prefix>_polished_fixed.circularise.fasta)
+
+<a href="files/1_Assembly/quast/report.html" target="_blank">[Assembly Report by QUAST (.html)]</a>
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+fixed_polished_report <- read.table("files/1_Assembly/quast/report.tsv", header=T, check.names=F, sep="\t")
+
+datatable(fixed_polished_report, options = list(
+  dom = 't',
+  columnDefs = list(list(className = 'dt-center', targets = 2))
+)) %>%
+  formatCurrency('<prefix>', currency = "", interval = 3, mark = ",", digits=0)
+```
+
+***
+
+> __File path: 2_Subread/__
+
+__Each polymerase read is partitioned to form one or more subreads, which contain sequence from a single pass of a polymerase on a single strand of an insert within a SMRTbell™ template and no adapter sequences. The subreads contain the full set of quality values and kinetic measurements. Subreads are useful for applications like de novo assembly, resequencing, base modification analysis, and so on.__
+
+```
+[Notice]:
+1. Due to subreads fasta/fastq file is too large, we’re not provided in the report. If user required, get from your download link or hard-copy is a better alternative data transfer method.
+```
+
+<br>
+
+### Pre-assembly Process Summary 
+
+(Corrected reads ---> Overlap-based-trim (OBT) reads ---> Unitig reads)
+
+## Corrected reads
+
+```{r, out.width = "600px", echo=FALSE, message=FALSE, warning=FALSE}
+knitr::include_graphics("files/1_Assembly/AssemblyStats/readlengths-cor.png")
+```
+
+<br>
+
+### OBT reads
+
+```{r, out.width = "600px", echo=FALSE, message=FALSE, warning=FALSE}
+knitr::include_graphics("files/1_Assembly/AssemblyStats/readlengths-obt.png")
+```
+
+### Unitig reads
+
+```{r, out.width = "600px", echo=FALSE, message=FALSE, warning=FALSE}
+knitr::include_graphics("files/1_Assembly/AssemblyStats/readlengths-utg.png")
+```
+
+***
+
+### Reference
+```
+1. "Canu v1.8": Koren S, Walenz BP, Berlin K, Miller JR, Phillippy AM. Canu: scalable and accurate long-read assembly via adaptive k-mer weighting and repeat separation. Genome Research. (2017).
+
+
+2. "Circlator v1.4.0" - Assembly fixed & improvement
+Hunt M, Silva ND, Otto TD, Parkhill J, Keane JA, Harris SR. Circlator: automated circularization of genome assemblies using long sequencing reads. Genome Biology. 2015;16:294. doi:10.1186/s13059-015-0849-0.
+
+3. "QUAST v4.5" - Assembly evalutation
+Gurevich A., Saveliev V., Vyahhi N., Tesler G. QUAST: quality assessment tool for genome assemblies. Bioinformatics, 2013.
+```

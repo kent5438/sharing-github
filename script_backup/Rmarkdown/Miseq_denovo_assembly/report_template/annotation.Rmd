@@ -1,0 +1,331 @@
+---
+title: "Genome Annotation"
+output:
+  html_document:
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align="center")
+library(DT)
+library(dplyr)
+library(readxl)
+library(plotly)
+```
+
+***
+
+## Gene Prediction by Prokka
+```
+File path: 2_Prokka/
+```
+Whole genome annotation is the process of identifying features of interest in a set of genomic DNA sequences, and labelling them with useful information. “Prokka” is a software tool to annotate bacterial, archaeal and viral genomes quickly and produce standards-compliant output files [4].
+
+As de-novo assembled genome finished, we would like to know what kind of and how much of genes, RNAs, and other elements existed in genome. Prokka is a powerful tool which could help for finding bacteria origin of replication (ori), following with downstream gene/CDS/RNA sequence prediction and using blast method against the uniprot/swissprot database.
+
+<br>
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+df <- read.table("files/2_Prokka/<prefix>.txt", header=T, check.names=F, sep="\t")
+datatable(df, options = list(
+  dom = 't',
+  columnDefs = list(list(className = 'dt-center', targets = 2))
+  )) %>%
+  formatCurrency('count', currency = "", interval = 3, mark = ",", digits=0)
+```
+
+***
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+df <- read.table("files/2_Prokka/README.txt", header=T, check.names=F, sep="\t")
+df$Extension <- paste0("[",df$Extension,"]","(files/2_Prokka/<prefix>",df$Extension,")")
+knitr::kable(df)
+```
+
+***
+
+## Furthur Annotation
+```
+File path: 3_Annotation/
+```
+
+***
+
+### Nucleotide BLAST (Contig annotation)
+
+[Full Table Download (.xlsx)](files/<prefix>_contig_anno.xlsx)
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+nucl_blast <- read_excel("files/<prefix>_contig_anno.xlsx")
+datatable(nucl_blast,
+    escape=F,
+    filter = "top",
+    rownames= F,
+    extensions = list("ColReorder" = NULL,
+                      "Buttons" = NULL),
+    options = list(
+                dom = 'BRrltpi',
+                autoWidth=TRUE,
+                ColReorder = TRUE,
+                scrollX = TRUE,
+                columnDefs = list(
+                  list(className = "dt-center", targets = c(2:11,14:17)),
+                  list(targets = c(3,5:14), visible = FALSE)
+                ),
+                buttons =
+                  list(
+                    'copy',
+                    'print',
+                    list(
+                      extend = 'collection',
+                      buttons = c('csv', 'excel', 'pdf'),
+                      text = 'Download'
+                    ),
+                    I('colvis')
+                  )
+              )
+) %>%
+formatCurrency(3:9, currency = "", interval = 3, mark = ",", digits=0)
+```
+
+***
+
+### Protein BLAST (Functional annotation)
+
+[Full Table Download (.xlsx)](files/<prefix>_func_anno.xlsx)
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+nucl_blast <- read_excel("files/<prefix>_func_anno.xlsx")
+datatable(nucl_blast,
+    escape=F,
+    filter = "top",
+    rownames= F,
+    extensions = list("ColReorder" = NULL,
+                      "Buttons" = NULL),
+    options = list(
+                dom = 'BRrltpi',
+                autoWidth=TRUE,
+                ColReorder = TRUE,
+                scrollX = TRUE,
+                columnDefs = list(
+                  list(className = "dt-center", targets = c(2:4,5:8)),
+                  list(targets = c(1, 5:7, 10:15), visible = FALSE)
+                ),
+                buttons =
+                  list(
+                    'copy',
+                    'print',
+                    list(
+                      extend = 'collection',
+                      buttons = c('csv', 'excel', 'pdf'),
+                      text = 'Download'
+                    ),
+                    I('colvis')
+                  )
+              )
+)
+```
+
+***
+
+### Protein Group Orthologue (COG)
+
+In order to extract the maximum amount of information from the rapidly accumulating genome sequences, all conserved genes need to be classified according to their homologous relationships. Each COG consists of individual orthologous proteins or orthologous sets of paralogs from at least three lineages. Orthologs typically have the same function, allowing transfer of functional information from one member to an entire COG.
+
+[Full Table Download (.xlsx)](files/3_Annotation/COG/rps-blast_cog.txt.xlsx)
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+cog_report <- read_excel("files/3_Annotation/COG/rps-blast_cog.txt.xlsx")
+datatable(head(cog_report, 100),
+    escape=F,
+    filter = "top",
+    rownames= F,
+    extensions = list("ColReorder" = NULL,
+                      "Buttons" = NULL),
+    options = list(
+                dom = 'BRrltpi',
+                autoWidth=TRUE,
+                ColReorder = TRUE,
+                scrollX = TRUE,
+                columnDefs = list(
+                  list(className = "dt-center", targets = c(2:8,9:13)),
+                  list(targets = c(3:9, 11, 14:17), visible = FALSE)
+                ),
+                buttons =
+                  list(
+                    'copy',
+                    'print',
+                    list(
+                      extend = 'collection',
+                      buttons = c('csv', 'excel', 'pdf'),
+                      text = 'Download'
+                    ),
+                    I('colvis')
+                  )
+              )
+)
+```
+
+<br>
+
+```{r, out.width = "800px", echo=FALSE, message=FALSE, warning=FALSE}
+knitr::include_graphics("files/3_Annotation/COG/cog_barchart.png")
+```
+
+***
+
+### Gene Ontology (GO)
+
+Gene ontology concern with annotation of genes and gene products and to provide centralized access to resources and tools. both GO and COG provide specific information about gene or gene products.
+
+__There are three main classes in GO database:__
+
+__1. Cellular Component: These terms describe a component of a cell that is part of a larger object, such as an anatomical structure (e.g. rough endoplasmic reticulum or nucleus) or a gene product group (e.g. ribosome, proteasome or a protein dimer).__
+
+__2.Biological Process: A biological process term describes a series of events accomplished by one or more organized assemblies of molecular functions.__
+
+__3. Molecular Function: Molecular function terms describes activities that occur at the molecular level, such as "catalytic activity" or "binding activity".__
+
+“InterProscan v5” is a database which integrates together predictive information about proteins' function from a number of partner resources, giving an overview of the families that a protein belongs to and the domains and sites it contains. We input all of the predicted protein sequences to the database and try to parse their GO terms. [5]
+
+
+<br>
+
+[Full Table Download (.xlsx)](files/3_Annotation/GO/GO_mapping.txt.xlsx)
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+go_report <- read_excel("files/3_Annotation/GO/GO_mapping.txt.xlsx")
+datatable(go_report,
+    escape=F,
+    filter = "top",
+    rownames= F,
+    extensions = list("ColReorder" = NULL,
+                      "Buttons" = NULL),
+    options = list(
+                dom = 'BRrltpi',
+                autoWidth=TRUE,
+                ColReorder = TRUE,
+                scrollX = TRUE,
+                columnDefs = list(
+                  list(className = "dt-center", targets = 3),
+                  #list(targets = c(3:9, 11, 14:17), visible = FALSE)
+                  list(targets=4, 
+                       render = JS("function(data, type, row, meta) {",
+                                   "return type === 'display' && data.length > 20 ?",
+                                   "'<span title=\"' + data + '\">' + data.substr(0, 20) + '...</span>' : data;","}"))
+                ),
+                buttons =
+                  list(
+                    'copy',
+                    'print',
+                    list(
+                      extend = 'collection',
+                      buttons = c('csv', 'excel', 'pdf'),
+                      text = 'Download'
+                    ),
+                    I('colvis')
+                  )
+              )
+)
+```
+
+<br>
+
+```{r, out.width = "800px", echo=FALSE, message=FALSE, warning=FALSE}
+knitr::include_graphics("files/3_Annotation/GO/GO_barchart.png")
+```
+
+***
+
+### KEGG pathway (KEGG)
+
+KEGG PATHWAY is a collection of manually drawn pathway maps representing our knowledge on the molecular interaction, reaction and relation networks for:
+
+__1. Metabolism: Global/overview, Carbohydrate, Energy, Lipid, Nucleotide, Amino acid, Other amino, Glycan, Cofactor/vitamin, Terpenoid/PK, Other secondary metabolite, Xenobiotics, Chemical structure__
+
+__2. Genetic Information Processing__
+
+__3. Environmental Information Processing__
+
+__4. Cellular Processes__
+
+__5. Organismal Systems__
+
+__6. Human Diseases__
+
+__7. Drug Development__
+
+
+***
+
+[Full Table Download (.xlsx)](files/3_Annotation/KEGG/<prefix>_ec2kegg.xls)
+
+```
+If you would like to get the URL link of each pathway, please click the visibility of "URL" 
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+kegg_report <- read_excel("files/3_Annotation/KEGG/<prefix>_ec2kegg.xls")
+datatable(kegg_report,
+    escape=F,
+    filter = "top",
+    rownames= F,
+    extensions = list("ColReorder" = NULL,
+                      "Buttons" = NULL),
+    options = list(
+                dom = 'BRrltpi',
+                autoWidth=TRUE,
+                ColReorder = TRUE,
+                scrollX = TRUE,
+                columnDefs = list(
+                  list(className = "dt-center", targets = c(0, 3:8, 15, 16)),
+                  list(targets = c(9:11, 12:14, 17), visible = FALSE)
+#                  list(targets=17, 
+#                       render = JS("function(data, type, row, meta) {",
+#                                   "return type === 'display' && data.length > 20 ?",
+#                                   "'<span title=\"' + data + '\">' + data.substr(0, 20) + '...</span>' : data;","}"))
+                ),
+                buttons =
+                  list(
+                    'copy',
+                    'print',
+                    list(
+                      extend = 'collection',
+                      buttons = c('csv', 'excel', 'pdf'),
+                      text = 'Download'
+                    ),
+                    I('colvis')
+                  )
+              )
+)
+```
+
+<br>
+
+```{r, out.width = "800px", echo=FALSE, message=FALSE, warning=FALSE}
+knitr::include_graphics("files/3_Annotation/KEGG/kegg_barchart.png")
+```
+
+***
+
+## Final Summary Table
+
+[Assembled Contig Annotation Summary](files/<prefix>_contig_anno.xlsx)
+
+[Predicted Gene Functional Annotation Summary](files/<prefix>_func_anno.xlsx)
+
+***
+
+## Reference
+```
+1. "Prokka v1.12" - Prokaryotic gene prediction
+Seemann T., Prokka: rapid prokaryotic genome annotation, Bioinformatics 2014 Jul 15;30(14):2068-9. PMID:24642063
+
+2. "InterProScan 5" - Protein functional annotation
+Jones P, Binns D, Chang H-Y, et al. InterProScan 5: genome-scale protein function classification. Bioinformatics. 2014;30(9):1236-1240. doi:10.1093/bioinformatics/btu031.
+```
+
+***

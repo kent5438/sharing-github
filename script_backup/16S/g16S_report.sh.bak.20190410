@@ -1,0 +1,67 @@
+#! /bin/bash
+
+ID=`id -u -n`
+PWD=`pwd`
+
+OPT=$1 #{PB/Illu}
+
+sudo chown -R ${ID}:users *
+exist=`ls | grep 'F_3A' | wc -l`
+
+#if [ $exist -eq 0 ]; then
+#	echo "### ERROR: this program should run on the project root folder!"
+#	exit 1
+#fi
+#cd OUTPUT
+
+if [ ! -d "report" ]; then
+	mkdir report
+fi
+
+if [ -d "E.3_LEfSe" ]; then
+	cd "E.3_LEfSe"
+	perl /export/EC1680U/perl/bin/16S/LEfSe_spec_charact.pl
+	cd ..
+fi
+
+if [ "${OPT}" = "Illu" ]; then
+	sudo docker run -it --rm  -v /etc/localtime:/etc/localtime:ro -w `pwd` -v /export/EC1680U/:/export/EC1680U/ -v /export/EC1680U/DataBase/16S:/references -v `pwd`:`pwd` kentchendocker/g16s_pipeline:latest /export/EC1680U/daniel/16s_template/plot_report.Illumina.rb 19 'report_html' '.' 'mothur_without_qiime' '/export/EC1680U/daniel/16s_template/template'
+	rsync -avq /export/EC1680U/kentchen/16S/g16S/rmds/* report
+	rsync -avq report_html/data  report
+	if [ ! -d B.5_OTU_cluster/97 ]; then
+		ln -s $PWD/../OUTPUT/B.5_OTU_cluster/97 $PWD/B.5_OTU_cluster/97
+	fi
+        sed 's/^/\"/' report/data/AlphaIndicesTable.txt | sed 's/$/\"/' | sed 's/\t/\",\"/g' > report/data/AlphaIndicesTable.csv
+	cd report
+	sudo docker run --rm -it -v `pwd`:`pwd` -w `pwd` kendoit/g16s:0.5 \
+		Rscript -e "rmarkdown::render_site()"
+	cd ..
+	sudo chown -R ${ID}:users report
+	rsync -avq report_html/report.pdf report/_reports
+### parse more detail rep fasta for user (powered by JSYF)
+	perl /export/EC1680U/perl/bin/16S/otuCluster.pl
+###
+
+elif [ "${OPT}" = "PB" ]; then
+	sudo docker run -it --rm  -v /etc/localtime:/etc/localtime:ro -w `pwd` -v /export/EC1680U/:/export/EC1680U/ -v /export/EC1680U/DataBase/16S:/references -v `pwd`:`pwd` kentchendocker/g16s_pipeline:latest /export/EC1680U/daniel/16s_template/plot_report.PacBio.rb 19 'report_html' '.' 'mothur_without_qiime' '/export/EC1680U/daniel/16s_template/template'
+	rsync -avq /export/EC1680U/kentchen/16S/g16S/rmds_pacbio/* report
+	rsync -avq report_html/data report
+	if [ ! -d B.5_OTU_cluster/97 ]; then
+		ln -s $PWD/../OUTPUT/B.5_OTU_cluster/97 $PWD/B.5_OTU_cluster/97
+	fi
+        sed 's/^/\"/' report/data/AlphaIndicesTable.txt | sed 's/$/\"/' | sed 's/\t/\",\"/g' > report/data/AlphaIndicesTable.csv
+	cd report
+	sudo docker run --rm -it -v `pwd`:`pwd` -w `pwd` kendoit/g16s:0.5 \
+		Rscript -e "rmarkdown::render_site()"
+	cd ..
+	sudo chown -R ${ID}:users report
+	rsync -avq report_html/report.pdf report/_reports
+### parse more detail rep fasta for user (powered by JSYF)
+	perl /export/EC1680U/perl/bin/16S/otuCluster.pl
+###
+else
+	echo "### ERROR: please make sure the 1st ARGS should be [PB/Illu]"
+	exit 1
+fi
+cd ..
+

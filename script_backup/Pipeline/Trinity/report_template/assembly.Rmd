@@ -1,0 +1,110 @@
+---
+title: "SeqQC & Assembly Result"
+output: 
+  html_document:
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align="center")
+library(DT)
+library(dplyr)
+```
+
+***
+
+## Clean Read QC Summary
+
+> __File path: files/0_ReadQC/__
+
+We are using “Trimmomatic" for read quality filtering and adapter trimming [1]. MultiQC is a tool to create a single report with interactive plots for multiple bioinformatics analyses across many samples.  
+(If you are interested in raw reads quality, please feel free to contact us.)
+
+- Trimmomatic parameters:
+
+--- Remove adapters
+
+--- Remove low quality bases (<QV20)
+
+<a href="files/0_ReadQC/multiqc_report.html" target="_blank">QC Summary</a>
+
+```{r, out.width = "700px", out.height="800px", echo=FALSE, message=FALSE, warning=FALSE}
+knitr::include_url("files/0_ReadQC/multiqc_report.html")
+```
+
+***
+
+## Assembly Summary
+
+> __File path: files/1_AssemblyStats/__
+
+“Trinity” is a well-known transcriptome de-novo assembly tool. It combines three independent software modules: Inchworm, Chrysalis, and Butterfly, applied sequentially to process large volumes of RNA-seq reads. Trinity partitions the sequence data into many individual de Bruijn graphs, each representing the transcriptional complexity at a given gene or locus, and then processes each graph independently to extract full-length splicing isoforms and to tease apart transcripts derived from paralogous genes [2].
+
+While Trinity job has been completed, it might usually contain lots of duplicate transcripts existed in data. Thus, we commonly use another clustering tool: CD-HIT-EST [3], for processing redundant transcripts removal and try to get more specific unigenes.
+
+- Trinity parameters:
+
+--- Minimum contig length => 300 bp
+
+- CD-HIT-EST parameters:
+
+--- Sequence identity threshold => 95%
+
+<br>
+
+### Transcript Assembly Statistics
+
+<a href="files/1_AssemblyStats/Trinity.fasta" target="_blank">Raw Transcripts (.fasta)</a>
+
+<a href="files/1_AssemblyStats/Trinity.95.fasta" target="_blank">Uni Transcripts by 95% similarity clustering (.fasta)</a>
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+df <- read.delim("files/1_AssemblyStats/Trinity_assembled.final.stats.txt", header=F, skip=1, sep="\t")
+colnames(df) <- c("Features","Values")
+
+datatable(df, options = list(
+  dom = 't',
+  columnDefs = list(list(className = 'dt-center', targets = 2))
+)) %>%
+  formatCurrency('Values', currency = "", interval = 3, mark = ",", digits=0)
+```
+
+<br>
+
+- N50 size: 50% of the genome is in contigs as large as the N50 value.
+
+![](https://github.com/kent5438/sharing-github/blob/master/pics/N50.png?raw=true)
+
+--- ex1: N50 size = 30kbp
+
+(300k + 100k + 45k + 45k + 30k = 520k >=500kbp)
+
+--- ex2: N50 size = 700kbp
+
+(700k >= 500kbp)
+
+<br>
+
+### Transcript Length Distribution
+
+```{r, out.width = "500px", out.height="500px", echo=FALSE, message=FALSE, warning=FALSE}
+knitr::include_graphics("files/1_AssemblyStats/Trinity.95.dist.png")
+```
+
+***
+
+## Reference
+```
+1. "Trimmomatic v0.36": Read quality filtering & adapter trimming
+Bolger, A. M., Lohse, M., & Usadel, B. (2014). Trimmomatic: A flexible trimmer for Illumina Sequence Data. Bioinformatics, btu170.
+
+2. Haas BJ, Papanicolaou A, Yassour M, Grabherr M, Blood PD, Bowden J, Couger MB, Eccles D, Li B, Lieber M, Macmanes MD, Ott M, Orvis J, Pochet N, Strozzi F, Weeks N, Westerman R, William T, Dewey CN, Henschel R, Leduc RD, Friedman N, Regev A. De novo transcript sequence reconstruction from RNA-seq using the Trinity platform for reference generation and analysis. Nat Protoc. 2013 Aug;8(8):1494-512. Open Access in PMC doi: 10.1038/nprot.2013.084.
+
+3. Limin Fu, Beifang Niu, Zhengwei Zhu, Sitao Wu and Weizhong Li, CD-HIT: accelerated for clustering the next generation sequencing data. Bioinformatics, (2012), 28 (23): 3150-3152. doi: 10.1093/bioinformatics/bts565.
+
+```
+
+***

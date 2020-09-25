@@ -1,0 +1,32 @@
+name: "RNA-Seq Transcriptome Analysis Report"
+output_dir: "report"
+
+navbar:
+  title: '<img src="images/logo.jpg" width="50%" height="50%">'
+  left:
+    - text: "Home"
+      icon: fa-home
+      href: index.html
+    - text: "Experiment"
+      href: experiment.html
+    - text: "Seq QC & Assembly"
+      href: assembly.html
+    - text: "Quantitation & DE"
+      href: quantitation.html
+    - text: "Annotation"
+      href: annotation.html
+    - text: "Useful Tools"
+      href: tools.html
+  right:
+    - text: "Help"
+      icon: fa-question fa-lg
+      href: files/Help.pdf
+    - text: "Genomics NGS!"
+      href: http://www.genomics.com.tw/ngs
+output:
+  html_document:
+    theme: default
+    highlight: tango
+    include:
+      after_body: html/footer.html
+    css: css/styles.css

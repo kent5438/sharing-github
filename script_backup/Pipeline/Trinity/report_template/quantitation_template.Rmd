@@ -1,0 +1,251 @@
+---
+title: "Quantitation & DE Result"
+output:
+  html_document:
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align="center")
+library(DT)
+library(readxl)
+library(dplyr)
+```
+
+***
+
+> __File path: files/2_Quantitation/__
+
+## Alignment Summary
+
+In this stage, the de-nove/reseq assembled transcriptome will be regarded as backbone reference. All of the samples are going to be aligned for calculating the abundance of read count. The alignment tool we used is “bowtie2” [4], and the read count quantification tool we used is “RSEM” [5]. The alignment QC report we are using “Qualimap v2” for alignment evaluation [6].
+
+- RSEM parameters: 
+
+--- --no-mixed --no-discordant --gbar 1000 --end-to-end -k 200
+
+<a href="files/2_Quantitation/multiqc_qualimap.html" target="_blank">Alignment Summary</a>
+
+```{r, out.width = "700px", out.height="700px", echo=FALSE, message=FALSE, warning=FALSE}
+knitr::include_url("files/2_Quantitation/multiqc_qualimap.html")
+```
+
+***
+
+## Read Count Quantification by RSEM
+
+<br>
+
+### Read Count Table Summary
+
+- TRINITY_DN87_c0_g1_i1:
+
+--- clusters or components (c), which is generated from "contigs". representing the cluster of reads that were targeted for transcriptome assembly. Ideally, all reads corresponding to a gene would end up in such a cluster, and so you'll often see that related genes (paralogs or gene fragments) will have the same component identifier.
+
+__Contig聚類成components，根據最小overlap聚類contig。每一個component是由contigs組成的集合，這些contig可能是來自選擇性剪接 (alternative splicing)或者相近的旁系同源基因 (paralogous)__
+
+--- genes (g): The different (g's) could represent different genes, but they could also represent different parts of the same gene that didn't assemble together due to a gap in coverage or other reason.
+
+__Component以下的genes代表可能為相近的旁系同源基因 (paralogous)__
+
+--- isoforms (i): The different (i's) that correspond to the same (g) represent those different isoforms that share sequence but have different structure. These in most cases represent different alternative spliciing isoforms, but they could also represent paralogs.
+
+__Gene以下的isoforms代表可能為同一基因的不同選擇性剪接 (alternative splicing)__
+
+[Full Table Download (.xlsx)](files/2_Quantitation/final_RSEM_isoforms_report.xlsx)
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+quant_report <- read_excel("files/2_Quantitation/final_RSEM_isoforms_report.xlsx", n_max = 10)
+datatable(quant_report,
+    escape=F,
+    filter = "top",
+    rownames= F,
+    extensions = list("ColReorder" = NULL,
+                      "Buttons" = NULL),
+    options = list(
+                dom = 'BRrltpi',
+                autoWidth=TRUE,
+                ColReorder = TRUE,
+                scrollX = TRUE,
+                columnDefs = list(
+                  list(className = "dt-center", targets = 1:ncol(quant_report)-1)
+                  #list(targets = c(3:9, 11, 14:17), visible = FALSE)
+                  #list(targets=4, 
+                  #     render = JS("function(data, type, row, meta) {",
+                  #                 "return type === 'display' && data.length > 20 ?",
+                  #                 "'<span title=\"' + data + '\">' + data.substr(0, 20) + '...</span>' : data;","}"))
+                ),
+                buttons =
+                  list(
+                    'copy',
+                    'print',
+                    list(
+                      extend = 'collection',
+                      buttons = c('csv', 'excel', 'pdf'),
+                      text = 'Download'
+                    ),
+                    I('colvis')
+                  )
+              )
+)
+```
+
+--- expected_count: sum of the posterior probability of each read comes from this transcripts over all reads.
+
+--- FPKM: Fragment Per Kilobase of transcript per Million mapped reads. If reads are paired-end, each R1 or R2 mapped to transcript will be counted 1.
+
+![](https://github.com/kent5438/sharing-github/blob/master/pics/RPKM-FPKM.png?raw=true)
+
+--- TPM: Transcripts Per Million. It is a relative measure of transcript abundance. The sum of all transcripts’ TPM is 1 million.
+
+![](https://github.com/kent5438/sharing-github/blob/master/pics/TPM.png?raw=true)
+
+More detail we suggest referring to Yourgene blog: <a href="https://goo.gl/euDdqq" target="_blank">TPM introduction</a>
+
+***
+
+## Differential Gene Expression (DGE)
+
+As we got the read quantification data, various user-provided different comparisons are going to be calculated by “edgeR v3.5” [7], an R package which could process multiple differential expression analysis of RNA-seq expression profile with biological replication.
+
+--- log2FC: "log2" difference between sampleA and sampleB
+
+--- logCPM: "log2" counts per million, which is as similar as measuring expression level
+
+--- FDR (p-value.adjust): false discovery rate, which could help for validating the false positives in p-value result
+
+<br>
+
+### DGE Summary
+
+[Full Table Download (.xlsx)](files/3_DiffExpression/final_DE_comparison.report.xlsx)
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+de_report <- read_excel("files/3_DiffExpression/final_DE_comparison.report.xlsx", n_max = 10)
+datatable(de_report,
+    escape=F,
+    filter = "top",
+    rownames= F,
+    extensions = list("ColReorder" = NULL,
+                      "Buttons" = NULL),
+    options = list(
+                dom = 'BRrltpi',
+                autoWidth=TRUE,
+                ColReorder = TRUE,
+                scrollX = TRUE,
+                columnDefs = list(
+                  list(className = "dt-center", targets = 1:ncol(de_report)-1)
+                  #list(targets = c(3:9, 11, 14:17), visible = FALSE)
+                  #list(targets=4, 
+                  #     render = JS("function(data, type, row, meta) {",
+                  #                 "return type === 'display' && data.length > 20 ?",
+                  #                 "'<span title=\"' + data + '\">' + data.substr(0, 20) + '...</span>' : data;","}"))
+                ),
+                buttons =
+                  list(
+                    'copy',
+                    'print',
+                    list(
+                      extend = 'collection',
+                      buttons = c('csv', 'excel', 'pdf'),
+                      text = 'Download'
+                    ),
+                    I('colvis')
+                  )
+              )
+) %>%
+  formatCurrency(1:ncol(de_report), currency = "", interval = 3, mark = ",", digits=2)
+```
+
+<br>
+
+### Gene Count Heatmap (by Samples)
+
+Plot by all samples "TMM expression" and "normalized by z-score" (need to at least 3 samples)
+
+--- trimmed mean of M-values (TMM) method (specific-used for edgeR): Samples/observations that have the closest average expressions to mean of all samples is considered as reference samples, and all others are test samples. For each test sample, the scaling factor is calculated based on weighted mean (weighted by estimated asymptotic variance) of log ratios between the test and reference, from a gene set removing most/lowest expressed genes and genes with highest/lowest log ratios. 
+
+__TMM（edgeR）：與Deseq類似，在去除高表達基因和差異最大的基因後，TMM也是要找到一個加權係數，使剩餘的基因在被矯正後差異倍數可能小。TMM的加權係數是基於兩兩樣本比較後推算獲得的（也就是兩組樣本的比較，將產生與這次比較相關的加權係數）。然後將所有基因除以這個加權係數，從而保證大部分表達量居中的基因表達量最相似。__
+
+Ref: https://bit.ly/2J43pux
+
+```{r, out.width = "600px", out.height="800px", echo=FALSE, message=FALSE, warning=FALSE}
+if(file.exists("files/3_DiffExpression/all_samples_heatmap.png")){
+  knitr::include_graphics("files/3_DiffExpression/all_samples_heatmap.png")
+}
+```
+
+<br>
+
+### Gene Fold-Change Heatmap (by Groups)
+
+Plot by "Fold change" of all comparisons (need to at least 3 groups)
+
+```{r, out.width = "600px", out.height="800px", echo=FALSE, message=FALSE, warning=FALSE}
+if(file.exists("files/3_DiffExpression/all_groups_heatmap.png")){
+  knitr::include_graphics("files/3_DiffExpression/all_groups_heatmap.png")
+}
+```
+
+<br>
+
+### Sample's Correlation 
+
+Plot by all samples "TMM expression" and calculate by "pearson correlation coefficient" (need to at least 3 samples)
+
+```{r, out.width = "600px", out.height="600px", echo=FALSE, message=FALSE, warning=FALSE}
+if(file.exists("files/3_DiffExpression/all_samples_correlation.png")){
+  knitr::include_graphics("files/3_DiffExpression/all_samples_correlation.png")
+}
+```
+
+<br>
+
+### PCA of all samples (need to at least 3 samples)
+
+Plot by all samples TMM expression and calculate by pearson correlation coefficient.
+
+--- Feature Elimination
+
+--- Feature Extraction
+
+(need to at least 3 samples)
+
+```{r, out.width = "600px", out.height="600px", echo=FALSE, message=FALSE, warning=FALSE}
+if(file.exists("files/3_DiffExpression/all_samples_PCA.png")){
+  knitr::include_graphics("files/3_DiffExpression/all_samples_PCA.png")
+}
+```
+
+<br>
+
+### Scatter Plot for Gene Expression {.tabset .tabset-fade}
+
+--- X axis: log2 TMM of Control
+
+--- Y axis: log2 TMM of Treat
+
+--- If dots locate "above" upper blue line, it means log2FC > 1
+
+--- If dots locate "below" bottom blue line, it means log2FC < 1
+
+--- If dots are more darker, the PValue are more lower.
+
+<a href="https://github.com/kent5438/sharing-github/blob/master/pics/Scatter-plot_exp.png?raw=true" target="_blank">Scatter plot example & explanation</a>
+
+###COMPARISON1###
+
+<br>
+
+### Interactive MA-Plot & Volcano-Plot for Gene Expression {.tabset .tabset-fade}
+
+###COMPARISON2###
+
+***
+
+## Reference
+```
+```

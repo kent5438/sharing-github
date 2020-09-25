@@ -1,0 +1,48 @@
+---
+title: "Pacbio De-novo Assembly Report"
+output: 
+  html_document:
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align="center")
+```
+
+***
+
+### Introduction
+
+- In this application, reads were sequenced by Pacbio Sequel/Sequel2 platform. Adapters and Low quality bases  will be removed by SMRT analysis, and transform polymerase reads into 'subreads' or 'hifi reads'. The longer but higher error rate subreads could be assembled by "flye assembler"or we might use "hifiasm assembler" to assemble the high quality hifi reads. While contigs have been completed, it will be following with "scaffolding", "gapfilling", "polishing" and "circularization".
+
+- After genome assembly completed, we are using Prokka as gene prediction tool which is packaged with multiple functions including: (a) various RNA prediction, like rRNA, tRNA, tmRNA and miscRNA; (b) Gene / CDS prediction.
+
+- While we got multiple predicted proteins, followed with protein group function annotation which is blasted against with COG database, extracting gene ontology (GO) data by interproscan and using other scripts to generate KEGG functional pathway annotation according to their EC (enzyme commission) number.
+
+***
+
+### Flow Chart
+
+```{r, out.width = "600px", echo=FALSE, message=FALSE, warning=FALSE}
+knitr::include_graphics("images/Pacbio_Sequel_de-novo_assembly.png")
+```
+
+***
+
+
+<!--
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+-->

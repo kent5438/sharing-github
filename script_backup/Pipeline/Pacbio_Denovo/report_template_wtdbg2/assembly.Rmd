@@ -1,0 +1,110 @@
+---
+title: "Assembly result"
+output:
+  html_document:
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align="center")
+library(DT)
+library(dplyr)
+```
+
+***
+
+> __File path: 1_Assembly/__
+
+1. Assembly from PacBio subreads
+
+Wtdbg2 has two key components: an assembler wtdbg2 and a consenser wtpoa-cns. [1]
+
+For more detail of each step of assembly algorithms, please view the introduction:
+
+<a href="https://github.com/ruanjue/wtdbg2/blob/master/README-ori.md" target="_blank">wtdbg2 detail introduction</a>
+
+<br>
+
+2. Circularization of assembled genome
+
+Current long-read assembly software still typically assumes that the contigs they produce are linear. 
+
+In contrast, the genome of almost every species contains at least one circular DNA structure, such as bacterial chromosomes and plasmids. 
+
+Thus, a useful circularization of genome assembly tool – “Circlator v1.4.0” is our default pipeline to correct and linearize the genome [2]. 
+
+3. Assembly evaluation
+
+Finally, we are using “QUAST v4.5” for evaluating the assembled genome quality [3].
+
+***
+
+### Wtdbg2 Raw Assembly Summary
+
+[Wtdbg2 raw assembled contigs (.fasta)](files/1_Assembly/<prefix>_polished_assembly.fasta)
+
+<a href="files/1_Assembly/quast/report.html" target="_blank">[Assembly Report by QUAST (.html)]</a>
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+raw_polished_report <- read.table("files/1_Assembly/quast/report.tsv", header=T, check.names=F, sep="\t")
+
+datatable(raw_polished_report, options = list(
+  dom = 't',
+  columnDefs = list(list(className = 'dt-center', targets = 2))
+)) %>%
+  formatCurrency('<prefix>', currency = "", interval = 3, mark = ",", digits=0)
+```
+
+***
+
+### Fixed and Circularised Polished Assembly Summary (Circlator: a tool to circularize genome assemblies)
+
+a.) Identify each circular sequence and output a linearised version of it.
+
+b.) Join contigs together.
+
+c.) If a dnaA gene is found, then that is used as the starting position.
+
+[Fixed and circularised contigs (.fasta)](files/1_Assembly/<prefix>_polished_fixed.circularise.fasta)
+
+<a href="files/1_Assembly/quast/report.html" target="_blank">[Assembly Report by QUAST (.html)]</a>
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+fixed_polished_report <- read.table("files/1_Assembly/quast/report.tsv", header=T, check.names=F, sep="\t")
+
+datatable(fixed_polished_report, options = list(
+  dom = 't',
+  columnDefs = list(list(className = 'dt-center', targets = c(2,3)))
+)) %>%
+  formatCurrency('<prefix>', currency = "", interval = c(2,3), mark = ",", digits=0)
+```
+
+***
+
+> __File path: 2_Subread/__
+
+__Each polymerase read is partitioned to form one or more subreads, which contain sequence from a single pass of a polymerase on a single strand of an insert within a SMRTbell™ template and no adapter sequences. The subreads contain the full set of quality values and kinetic measurements. Subreads are useful for applications like de novo assembly, resequencing, base modification analysis, and so on.__
+
+```
+[Notice]:
+1. Due to subreads fasta/fastq file is too large, we’re not provided in the report. If user required, get from your download link or hard-copy is a better alternative data transfer method.
+
+2. If user are interesting on the PacBio subreads distribution and stats, please view the PDF in your download folder or let us know.
+```
+
+***
+
+### Reference
+```
+1. Wtdbg2 v2.3: A fuzzy Bruijn graph approach to long noisy reads assembly
+Ruan, J. and Li, H. (2019) Fast and accurate long-read assembly with wtdbg2. bioRxiv. doi:10.1101/530972
+
+2. "Circlator v1.4.0" - Assembly fixed & improvement
+Hunt M, Silva ND, Otto TD, Parkhill J, Keane JA, Harris SR. Circlator: automated circularization of genome assemblies using long sequencing reads. Genome Biology. 2015;16:294. doi:10.1186/s13059-015-0849-0.
+
+3. "QUAST v4.5" - Assembly evalutation
+Gurevich A., Saveliev V., Vyahhi N., Tesler G. QUAST: quality assessment tool for genome assemblies. Bioinformatics, 2013.
+```

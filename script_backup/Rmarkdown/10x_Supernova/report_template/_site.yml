@@ -1,0 +1,21 @@
+name: "10x Denovo Assembly Report"
+output_dir: "report"
+
+navbar:
+  title: '<img src="images/logo.jpg" width="50%" height="50%">'
+  left:
+    - text: "Summary"
+      icon: fa-home
+      href: index.html
+  right:
+  - text: "Help"
+    icon: fa-question fa-lg
+    href: 'https://support.10xgenomics.com/de-novo-assembly/software/overview/welcome'
+output:
+  html_document:
+    theme: default
+    highlight: tango
+    include:
+      after_body: html/footer.html
+    css: css/styles.css
+

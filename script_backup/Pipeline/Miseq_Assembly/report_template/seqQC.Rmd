@@ -1,0 +1,38 @@
+---
+title: "Sequence QC result"
+output: 
+  html_document:
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align="center")
+library(DT)
+library(dplyr)
+```
+
+***
+
+> __File path: files/1_Assembly/__
+
+### Clean Read QC Summary
+
+We are showing the clean read and merged reads QC summary here.  
+If you are interested in raw reads quality, please feel free to contact us.
+
+<a href="files/0_ReadQC/multiqc_report.html" target="_blank">QC Summary</a>
+
+```{r, out.width = "700px", out.height="700px", echo=FALSE, message=FALSE, warning=FALSE}
+knitr::include_url("files/0_ReadQC/multiqc_report.html")
+```
+
+***
+
+### Reference
+```
+- "Trimmomatic": Read quality filtering & adapter trimming
+(http://www.usadellab.org/cms/?page=trimmomatic)
+```

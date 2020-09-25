@@ -1,0 +1,2 @@
+for i in BRCA_Pooling*; do ngmlr -t 32 -r BRCA1-2_NTUH-simon.fasta -q ${i}/ccs.fastq  | samtools sort -@ 32 -o ${i}/${i}.sorted.bam -; done
+for i in BRCA_Pooling*; do sniffles -m ${i}/${i}.sorted.bam -b ${i}/${i}.bedpe -t 32; /export/EC1680U/perl/bin/tab2xlsx.pl ${i}/${i}.bedpe ${i}/${i}.bedpe.xlsx; sniffles -m ${i}/${i}.sorted.bam -v ${i}/${i}.vcf; /export/EC1680U/perl/bin/tab2xlsx.pl ${i}/${i}.vcf ${i}/${i}.vcf.xlsx ; done

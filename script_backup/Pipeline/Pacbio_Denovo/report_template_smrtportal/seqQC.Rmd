@@ -1,0 +1,74 @@
+---
+title: "Sequence QC result"
+output: 
+  html_document:
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align="center")
+library(DT)
+library(dplyr)
+```
+
+***
+
+> __File path: 2_Subread/__
+
+__Each polymerase read is partitioned to form one or more subreads, which contain sequence from a single pass of a polymerase on a single strand of an insert within a SMRTbell™ template and no adapter sequences. The subreads contain the full set of quality values and kinetic measurements. Subreads are useful for applications like de novo assembly, resequencing, base modification analysis, and so on.__
+
+```
+[Notice]:
+Due to fasta/fastq file size are too large, we’re not provided in the report. If user required, hard-copy is a better alternative data transfer method.
+```
+
+<br>
+
+### Raw Polymerase Read Summary
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+subread <- read.csv("files/2_Subreads/filter_reports_filter_stats.csv", header=T, check.names=F)
+datatable(subread, options = list(
+ columnDefs = list(list(className = 'dt-center', targets = c(1:2))), 
+ dom = 't'
+)) %>%
+  formatCurrency('value', currency = "", interval = 3, mark = ",", digits=2)
+```
+
+<br>
+
+### Filtered Subread Summary
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+filtered_subread <- read.csv("files/2_Subreads/filter_reports_filter_subread_stats.csv", header=T, check.names=F)
+datatable(filtered_subread, options = list(
+ columnDefs = list(list(className = 'dt-center', targets = c(1:2))), 
+ dom = 't'
+)) %>%
+  formatCurrency('value', currency = "", interval = 3, mark = ",", digits=0)
+```
+
+<br>
+
+### Subreads Length Distribution
+
+```{r, out.width = "600px", echo=FALSE, message=FALSE, warning=FALSE}
+knitr::include_graphics("files/2_Subreads/filtered_subread_report.png")
+```
+
+### Post-filter Subreads Quality Score
+
+```{r, out.width = "600px", echo=FALSE, message=FALSE, warning=FALSE}
+knitr::include_graphics("files/2_Subreads/post_filterread_score_histogram.png")
+```
+
+***
+
+### Reference
+```
+- "SMRT analysis 2.3.0" - Read filtering
+https://github.com/PacificBiosciences/SMRT-Analysis/wiki
+```

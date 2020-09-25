@@ -1,0 +1,8 @@
+<jellyProtocol>
+	<reference>scaffolds.fasta</reference>
+	<outputDir>pbjelly_out</outputDir>
+	<blasr>-minMatch 8 -minPctIdentity 70 -bestn 1 -nCandidates 20 -maxScore -500 -nproc 32 -noSplitSubreads</blasr>
+	<input baseDir="/export/EC1680U/kentchen/Pacbio/PS19035/CP02/subreads">
+		<job>PS19035_CP02.subreads.fastq</job>
+	</input>
+</jellyProtocol>

@@ -1,0 +1,182 @@
+title: RNA-seq Transcriptome Analysis QC Report (Read QC)
+output_fn_name: multiqc_fastqc.html
+data_dir_name: multiqc_data
+
+report_header_info:
+    - Application Type: 'RNA-seq'
+    - Sequencing Platform: 'HiSeq 4000 / Nova-seq High Throughput'
+    - Sequencing Setup: '2x150 bp'
+
+extra_fn_clean_exts:
+    - .hisat
+    - '.bam'
+    - '.sam'
+    - '.sra'
+    - '_tophat'
+    - '_star_aligned'
+    - '_fastqc'
+    - '_trim'
+    - type: remove
+      pattern: '_trim'
+
+log_filesize_limit: 5000000
+custom_logo: Genomics_logo_color.png
+custom_logo_url: http://www.genomics.com.tw
+custom_logo_title: Genomics BioSci & Tech. Co., Ltd.
+subtitle: null
+intro_text: False
+custom_data:
+    sample_summary:
+        #id: 'mqc_sample_summary_section'
+        file_format: 'csv'
+        section_name: 'Sample Summary'
+        description: 'This table shows the summary information about samples.'
+        plot_type: 'table'
+        headers:
+            Length_Mean:
+                title: 'Average Read Length'
+                scale: 'GnBu'
+                format: '{:,.2f}'
+                hidden: False
+                placement: 900
+            Q20_Ratio:
+                title: '% Bases Q ≥ 20'
+                scale: 'YlGn'
+                suffix: '%'
+                hidden: False 
+                format: '{:,.2f}'
+                placement: 910
+            Q30_Ratio:
+                title: '% Bases Q ≥ 30'
+                scale: 'OrRd'
+                suffix: '%'
+                hidden: False
+                format: '{:,.2f}'
+                placement: 920
+            Qual_Mean:
+                title: 'Average Quality'
+                scale: 'YlGn'
+                format: '{:,.2f}'
+                placement: 930
+            Reads:
+                title: '# Reads'
+                scale: 'OrRd'
+                format: '{:,.0f}'
+                placement: 1100
+            Total_Bases:
+                title: '# Bases'
+                scale: 'OrRd'
+                format: '{:,.0f}'
+                #modify: 'lambda x: float(x) / 1000000000' # modify option does not work in yaml, it only works in python
+                placement: 1200
+            GC:
+                title: '% GC'
+                scale: 'GnBu'
+                format: '{:,.2f}'
+                suffix: '%'
+                placement: 810
+        
+    fastqStats_files:
+        #id: 'mqc_fastq-stats_section'
+        file_format: 'csv'
+        section_name: 'Fastq-Stats'
+        description: 'This table shows the detail information about fastq files.'
+        plot_type: 'table'
+        headers:
+            Phred:
+                format: '{:,.0f}'
+                placement: 800
+            Length_Mean:
+                title: 'Average Read Length'
+                scale: 'GnBu'
+                format: '{:,.2f}'
+                hidden: False
+                placement: 900
+            Q20_Ratio:
+                title: '% Bases Q ≥ 20'
+                scale: 'YlGn'
+                suffix: '%'
+                hidden: False 
+                format: '{:,.2f}'
+                placement: 910
+            Q30_Ratio:
+                title: '% Bases Q ≥ 30'
+                scale: 'OrRd'
+                suffix: '%'
+                hidden: False
+                format: '{:,.2f}'
+                placement: 920
+            Qual_Mean:
+                title: 'Average Quality'
+                scale: 'YlGn'
+                format: '{:,.2f}'
+                placement: 930
+            Reads:
+                title: '# Reads'
+                scale: 'OrRd'
+                format: '{:,.0f}'
+                placement: 1100
+            Total_Bases:
+                title: '# Bases'
+                scale: 'OrRd'
+                format: '{:,.0f}'
+                #modify: 'lambda x: float(x) / 1000000000' # modify option does not work in yaml, it only works in python
+                placement: 1200
+            GC:
+                title: '% GC'
+                scale: 'GnBu'
+                format: '{:,.2f}'
+                suffix: '%'
+                placement: 810
+sp:
+    fastqStats_files:
+        fn: 'summary.csv'
+    sample_summary:
+        fn: 'samples.summary.csv'
+
+table_columns_visible:
+    FastQC:
+        total_sequences: True
+        percent_duplicates: False
+        avg_sequence_length: True
+        percent_fails: False
+#module_order:
+#    - fastqc:
+#        name: 'FastQC (clean)'
+#        info: 'This section of the report shows FastQC results after adapter trimming.'
+#        path_filters:
+#            - '*.clean_fastqc.zip'
+#    - fastqc:
+#        name: 'FastQC (raw)'
+#        path_filters:
+#            - '*R{1,2}_fastqc.zip'
+read_count_multiplier: 0.000001
+read_count_prefix: 'M'
+read_count_desc: 'millions'
+thousandsSep_format: ','
+table_cond_formatting_rules:
+    mqc-generalstats-total_sequences:
+        pass:
+            - gt: 20
+        warn:
+            - lt: 20
+        fail:
+            - lt: 19.5
+
+report_comment: >
+    This report has been generated by the <a href="http://gitlab.genomics.local:10080/ken/iqc" target="_blank">iQC</a>
+    analysis pipeline. For information about how to interpret these results, please see the
+    <a href="" target="_blank">documentation</a>.
+
+top_modules:
+  - 'edgeR-sample-distances'
+  - 'sample-similarity'
+  - 'DupRadar'
+  - 'biotype-counts'
+
+report_section_order:
+    software_versions:
+        order: -1000
+    workflow-summary:
+        order: -1100
+
