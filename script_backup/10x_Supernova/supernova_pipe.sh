@@ -3,6 +3,8 @@
 
 echo "Hello World!"
 
+echo "Github branch testing ~"
+
 prefix=$1
 if [ -z $prefix ]; then
 	echo "### ERROR: 10x project ID is required!"
