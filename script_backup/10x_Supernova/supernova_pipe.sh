@@ -1,6 +1,8 @@
 #! /bin/bash
 ### Run on Snake only (SSD + large local space)
 
+echo "Hello World!"
+
 prefix=$1
 if [ -z $prefix ]; then
 	echo "### ERROR: 10x project ID is required!"
