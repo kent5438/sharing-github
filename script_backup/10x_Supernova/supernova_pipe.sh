@@ -1,9 +1,6 @@
 #! /bin/bash
 ### Run on Snake only (SSD + large local space)
 
-echo "Hello World!"
-
-echo "Github branch testing ~"
 
 prefix=$1
 if [ -z $prefix ]; then
