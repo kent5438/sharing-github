@@ -2,6 +2,8 @@
 ### Run on Snake only (SSD + large local space)
 
 
+echo "10x supernova has been under maintain!"
+
 prefix=$1
 if [ -z $prefix ]; then
 	echo "### ERROR: 10x project ID is required!"
